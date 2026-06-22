@@ -95,6 +95,9 @@ export interface Order {
   hasEmptyCylinder: boolean
   changeFor?: number
   cancellationReason?: string
+  is_scheduled: boolean
+  scheduled_date?: string
+  scheduled_time_slot?: string
   createdAt: string
   updatedAt: string
 }
@@ -123,6 +126,8 @@ export interface StoreSettings {
   store_open: boolean
   opening_time?: string
   closing_time?: string
+  operating_days?: { day: number; open: boolean; start?: string; end?: string }[]
+  holidays?: string[]
 }
 
 // --- Loyalty ---

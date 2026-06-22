@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { Eye } from 'lucide-react'
+import { Eye, Clock } from 'lucide-react'
 import { api } from '../services/api'
 import type { Order, OrderStatus } from '../types'
 import './Orders.css'
@@ -252,7 +252,20 @@ export function Orders() {
                   {orders.map((order) => (
                     <tr key={order.id} className={selectedOrder?.id === order.id ? 'selected-row' : ''}>
                       <td className="order-id">#{order.id.slice(-6).toUpperCase()}</td>
-                      <td>{order.customer?.name ?? '—'}</td>
+                      <td>
+                        <div className="order-customer">
+                          <strong>{order.customer?.name}</strong>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                            {order.address.street}, {order.address.number}
+                          </div>
+                          {(order as any).is_scheduled && (
+                            <div style={{ marginTop: '4px', fontSize: '0.8rem', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                              <Clock size={12} />
+                              Agendado para: {new Date((order as any).scheduled_date!).toLocaleDateString('pt-BR')} ({(order as any).scheduled_time_slot})
+                            </div>
+                          )}
+                        </div>
+                      </td>
                       <td>{formatCurrency(order.total)}</td>
                       <td>{PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}</td>
                       <td>

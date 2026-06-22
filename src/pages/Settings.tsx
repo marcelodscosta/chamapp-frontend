@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Save, Store, Star, AlertCircle, CheckCircle } from 'lucide-react'
+import { Save, Store, Star, AlertCircle, CheckCircle, CalendarDays, Plus, Trash2 } from 'lucide-react'
 import { api } from '../services/api'
 import type { StoreSettings, LoyaltyConfig } from '../types'
 import './Settings.css'
@@ -17,7 +17,7 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
 }
 
 export function Settings() {
-  const [tab, setTab] = useState<'store' | 'loyalty'>('store')
+  const [tab, setTab] = useState<'store' | 'loyalty' | 'calendar'>('store')
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null)
   const [loyaltyConfig, setLoyaltyConfig] = useState<LoyaltyConfig | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -65,6 +65,8 @@ export function Settings() {
         store_open: storeSettings.store_open,
         opening_time: storeSettings.opening_time,
         closing_time: storeSettings.closing_time,
+        operating_days: storeSettings.operating_days,
+        holidays: storeSettings.holidays,
       })
       setToast({ message: 'Configurações salvas com sucesso!', type: 'success' })
     } catch (err: any) {
@@ -118,6 +120,10 @@ export function Settings() {
           <Store size={15} style={{ marginRight: '0.375rem', display: 'inline' }} />
           Configurações da Loja
         </button>
+        <button className={`tab-btn ${tab === 'calendar' ? 'active' : ''}`} onClick={() => setTab('calendar')}>
+          <CalendarDays size={15} style={{ marginRight: '0.375rem', display: 'inline' }} />
+          Calendário e Agendamentos
+        </button>
         <button className={`tab-btn ${tab === 'loyalty' ? 'active' : ''}`} onClick={() => setTab('loyalty')}>
           <Star size={15} style={{ marginRight: '0.375rem', display: 'inline' }} />
           Programa de Fidelidade
@@ -163,16 +169,11 @@ export function Settings() {
           </div>
 
           <div className="settings-section">
-            <h3 className="settings-section-title">Horário de Funcionamento</h3>
+            <h3 className="settings-section-title">Controle Manual</h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Use este controle para fechar ou abrir a loja emergencialmente, ignorando os horários definidos no Calendário.
+            </p>
             <div className="settings-grid">
-              <div className="input-group">
-                <label className="input-label">Abertura</label>
-                <input className="input-field" type="time" value={storeSettings.opening_time ?? ''} onChange={(e) => handleStoreChange('opening_time', e.target.value)} />
-              </div>
-              <div className="input-group">
-                <label className="input-label">Fechamento</label>
-                <input className="input-field" type="time" value={storeSettings.closing_time ?? ''} onChange={(e) => handleStoreChange('closing_time', e.target.value)} />
-              </div>
               <div className="input-group">
                 <label className="settings-toggle-label">
                   <span>Loja Aberta Agora</span>
@@ -193,6 +194,130 @@ export function Settings() {
             <button className="btn btn-primary" onClick={saveStore} disabled={isSaving}>
               <Save size={16} />
               {isSaving ? 'Salvando...' : 'Salvar Configurações'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {tab === 'calendar' && storeSettings && (
+        <div className="settings-card card">
+          <div className="settings-section">
+            <h3 className="settings-section-title">Dias de Funcionamento</h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Selecione quais dias da semana a loja atende pedidos agendados e configure o horário comercial para eles.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {[0, 1, 2, 3, 4, 5, 6].map(dayIdx => {
+                const dayNames = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
+                const currentDays = storeSettings.operating_days || []
+                const dayConfig = currentDays.find(d => d.day === dayIdx) || { day: dayIdx, open: false, start: '08:00', end: '18:00' }
+                
+                return (
+                  <div key={dayIdx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '150px', fontWeight: 500 }}>
+                      <input 
+                        type="checkbox" 
+                        checked={dayConfig.open}
+                        onChange={(e) => {
+                          const newDays = currentDays.filter(d => d.day !== dayIdx)
+                          newDays.push({ ...dayConfig, open: e.target.checked })
+                          handleStoreChange('operating_days', newDays)
+                        }}
+                      />
+                      {dayNames[dayIdx]}
+                    </label>
+                    {dayConfig.open ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input 
+                          type="time" 
+                          className="input-field" 
+                          style={{ padding: '0.25rem 0.5rem' }} 
+                          value={dayConfig.start} 
+                          onChange={(e) => {
+                            const newDays = currentDays.filter(d => d.day !== dayIdx)
+                            newDays.push({ ...dayConfig, start: e.target.value })
+                            handleStoreChange('operating_days', newDays)
+                          }}
+                        />
+                        <span>até</span>
+                        <input 
+                          type="time" 
+                          className="input-field" 
+                          style={{ padding: '0.25rem 0.5rem' }} 
+                          value={dayConfig.end} 
+                          onChange={(e) => {
+                            const newDays = currentDays.filter(d => d.day !== dayIdx)
+                            newDays.push({ ...dayConfig, end: e.target.value })
+                            handleStoreChange('operating_days', newDays)
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Fechado</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="settings-section">
+            <h3 className="settings-section-title">Feriados e Exceções (Dias Fechados)</h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Adicione datas específicas em que a loja não abrirá (ex: Natal, Ano Novo).
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+              <input 
+                type="date" 
+                className="input-field" 
+                id="newHolidayDate"
+                style={{ width: 'auto' }}
+              />
+              <button 
+                className="btn btn-primary" 
+                style={{ padding: '0.5rem 1rem' }}
+                onClick={() => {
+                  const el = document.getElementById('newHolidayDate') as HTMLInputElement
+                  if (el.value) {
+                    const currentHolidays = storeSettings.holidays || []
+                    if (!currentHolidays.includes(el.value)) {
+                      handleStoreChange('holidays', [...currentHolidays, el.value])
+                    }
+                    el.value = ''
+                  }
+                }}
+              >
+                <Plus size={16} /> Adicionar Data
+              </button>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {(storeSettings.holidays || []).map(dateStr => (
+                <div key={dateStr} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 1rem', background: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                  <span>{new Date(dateStr + 'T12:00:00Z').toLocaleDateString('pt-BR')}</span>
+                  <button 
+                    className="btn" 
+                    style={{ color: 'var(--accent-danger)' }}
+                    onClick={() => {
+                      handleStoreChange('holidays', (storeSettings.holidays || []).filter(d => d !== dateStr))
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+              {(!storeSettings.holidays || storeSettings.holidays.length === 0) && (
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontStyle: 'italic' }}>
+                  Nenhuma data de exceção cadastrada.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="settings-actions">
+            <button className="btn btn-primary" onClick={saveStore} disabled={isSaving}>
+              <Save size={16} />
+              {isSaving ? 'Salvando...' : 'Salvar Calendário'}
             </button>
           </div>
         </div>
