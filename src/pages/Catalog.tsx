@@ -84,17 +84,29 @@ function ProductModal({
   onClose: () => void
   onSaved: () => void
 }) {
+  const existingImage = product?.imageUrl || (product as any)?.image_url
   const [form, setForm] = useState({
     name: product?.name ?? '',
     description: product?.description ?? '',
     price: product?.price?.toString() ?? '',
     categoryId: product?.categoryId ?? '',
-    imageUrl: product?.imageUrl ?? '',
     requiresEmptyReturn: product?.requiresEmptyReturn ?? false,
     earnsPoints: product?.earnsPoints ?? true,
     isAvailable: product?.isAvailable ?? true,
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string | null>(existingImage ?? null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setSelectedFile(file)
+    if (file) {
+      setPreview(URL.createObjectURL(file))
+    } else {
+      setPreview(existingImage ?? null)
+    }
+  }
 
   const handleChange = (field: string, value: any) => setForm((prev) => ({ ...prev, [field]: value }))
 
@@ -106,13 +118,25 @@ function ProductModal({
         ...form,
         price: parseFloat(form.price),
         categoryId: form.categoryId || undefined,
-        imageUrl: form.imageUrl || undefined,
       }
+      
+      let productId = product?.id
+
       if (product) {
         await api.put(`/products/${product.id}`, body)
       } else {
-        await api.post('/products', body)
+        const res = await api.post('/products', body)
+        productId = res.data.product.id
       }
+
+      if (selectedFile && productId) {
+        const formData = new FormData()
+        formData.append('file', selectedFile)
+        await api.patch(`/products/${productId}/image`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      }
+
       onSaved()
       onClose()
     } catch (err: any) {
@@ -147,8 +171,18 @@ function ProductModal({
               <input className="input-field" type="number" step="0.01" min="0" value={form.price} onChange={(e) => handleChange('price', e.target.value)} required />
             </div>
             <div className="input-group">
-              <label className="input-label">URL da Imagem</label>
-              <input className="input-field" type="url" value={form.imageUrl} onChange={(e) => handleChange('imageUrl', e.target.value)} placeholder="https://..." />
+              <label className="input-label">Imagem do Produto</label>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                {preview ? (
+                  <img src={preview} alt="Preview" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: '60px', height: '60px', borderRadius: '8px', border: '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.75rem', flexShrink: 0 }}>Sem foto</div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <input className="input-field" type="file" accept="image/*" onChange={handleFileChange} style={{ width: '100%', padding: '0.4rem', fontSize: '0.875rem' }} />
+                  {existingImage && !selectedFile && <p style={{ fontSize: '0.7rem', marginTop: '4px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Já possui imagem salva. Envie outra p/ substituir.</p>}
+                </div>
+              </div>
             </div>
             <div className="input-group col-span-2">
               <label className="input-label">Descrição</label>
@@ -285,8 +319,8 @@ export function Catalog() {
                   <tr key={product.id}>
                     <td>
                       <div className="product-name-cell">
-                        {product.imageUrl
-                          ? <img src={product.imageUrl} alt={product.name} className="product-thumb" />
+                        {(product.imageUrl || (product as any).image_url)
+                          ? <img src={product.imageUrl || (product as any).image_url} alt={product.name} className="product-thumb" />
                           : <div className="product-thumb-placeholder"><Package size={16} /></div>
                         }
                         <div>
