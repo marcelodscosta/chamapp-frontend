@@ -51,7 +51,7 @@ function formatCurrency(v: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
 }
 
-const DEFAULT_CENTER: [number, number] = [-23.5505, -46.6333]
+const DEFAULT_CENTER: [number, number] = [-9.1620, -40.9708] // Casa Nova, Bahia
 
 export function MapView() {
   const [orders, setOrders] = useState<Order[]>([])
