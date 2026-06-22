@@ -13,7 +13,7 @@ import {
   Legend,
   ArcElement,
 } from 'chart.js'
-import { Line, Doughnut } from 'react-chartjs-2'
+import { Line, Doughnut, Bar } from 'react-chartjs-2'
 import { api } from '../services/api'
 import type { DashboardMetrics } from '../types'
 import './Dashboard.css'
@@ -39,6 +39,22 @@ const STATUS_COLORS: Record<string, string> = {
   OUT_FOR_DELIVERY: '#06B6D4',
   DELIVERED: '#10B981',
   CANCELLED: '#EF4444',
+}
+
+const PAYMENT_COLORS: Record<string, string> = {
+  PIX: '#00BDB3',
+  DINHEIRO: '#10B981',
+  CARTAO_CREDITO: '#8B5CF6',
+  CARTAO_DEBITO: '#3B82F6',
+  VALE_REFEICAO: '#F59E0B'
+}
+
+const PAYMENT_LABELS: Record<string, string> = {
+  PIX: 'Pix',
+  DINHEIRO: 'Dinheiro',
+  CARTAO_CREDITO: 'Cartão de Crédito',
+  CARTAO_DEBITO: 'Cartão de Débito',
+  VALE_REFEICAO: 'Vale Refeição'
 }
 
 function formatCurrency(value: number) {
@@ -142,6 +158,40 @@ export function Dashboard() {
     cutout: '65%',
   }
 
+  const paymentData = {
+    labels: metrics?.salesByPaymentMethod?.map((p) => PAYMENT_LABELS[p.method] ?? p.method) ?? [],
+    datasets: [{
+      data: metrics?.salesByPaymentMethod?.map((p) => p.total) ?? [],
+      backgroundColor: metrics?.salesByPaymentMethod?.map((p) => PAYMENT_COLORS[p.method] ?? '#94A3B8') ?? [],
+      borderWidth: 2,
+      borderColor: '#fff',
+    }],
+  }
+
+  // Pegar os 5 produtos mais vendidos por receita
+  const topProducts = metrics?.productSales?.slice(0, 5) ?? []
+
+  const productBarData = {
+    labels: topProducts.map((p) => p.name),
+    datasets: [{
+      label: 'Receita Gerada (R$)',
+      data: topProducts.map((p) => p.totalRevenue),
+      backgroundColor: '#8B5CF6',
+      borderRadius: 4,
+    }],
+  }
+
+  const barOptions = {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: '#F3F4F6' }, ticks: { callback: (v: any) => `R$ ${v}` } },
+      y: { grid: { display: false } },
+    },
+  }
+
   return (
     <div className="dashboard-container">
       <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -205,6 +255,58 @@ export function Dashboard() {
                 <Doughnut options={doughnutOptions} data={doughnutData} />
               </div>
             </div>
+          </div>
+
+          <div className="charts-grid" style={{ marginTop: '1.5rem' }}>
+            <div className="chart-section card">
+              <div className="chart-header">
+                <h3>Vendas por Pagamento</h3>
+              </div>
+              <div className="chart-container" style={{ height: '280px' }}>
+                <Doughnut options={doughnutOptions} data={paymentData} />
+              </div>
+            </div>
+
+            <div className="chart-section card">
+              <div className="chart-header">
+                <h3>Top Produtos (Receita)</h3>
+              </div>
+              <div className="chart-container" style={{ height: '280px' }}>
+                <Bar options={barOptions} data={productBarData} />
+              </div>
+            </div>
+          </div>
+
+          <div className="chart-section card" style={{ marginTop: '1.5rem', overflowX: 'auto' }}>
+            <div className="chart-header">
+              <h3>Desempenho de Produtos</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Ticket médio de todos os produtos do catálogo com vendas no período.</p>
+            </div>
+            <table className="products-table">
+              <thead>
+                <tr>
+                  <th>Produto</th>
+                  <th style={{ textAlign: 'right' }}>Qtd Vendida</th>
+                  <th style={{ textAlign: 'right' }}>Receita Total</th>
+                  <th style={{ textAlign: 'right' }}>Ticket Médio</th>
+                </tr>
+              </thead>
+              <tbody>
+                {metrics?.productSales?.map((product) => (
+                  <tr key={product.productId}>
+                    <td><strong>{product.name}</strong></td>
+                    <td style={{ textAlign: 'right' }}>{product.quantitySold} un</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--accent-primary)' }}>{formatCurrency(product.totalRevenue)}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{formatCurrency(product.averageTicket)}</td>
+                  </tr>
+                ))}
+                {(!metrics?.productSales || metrics.productSales.length === 0) && (
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>Nenhum produto vendido neste período.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </>
       )}

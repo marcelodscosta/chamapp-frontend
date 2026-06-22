@@ -160,7 +160,9 @@ export interface DashboardMetrics {
   newCustomers: number
   averageTicket: number
   revenueByDay: { date: string; revenue: number }[]
-  ordersByStatus: Record<string, number>  // ex: { PENDING: 3, DELIVERED: 10 }
+  ordersByStatus: Record<string, number>
+  salesByPaymentMethod: { method: string; total: number; count: number }[]
+  productSales: { productId: string; name: string; quantitySold: number; totalRevenue: number; averageTicket: number }[]
 }
 
 // --- Pagination ---

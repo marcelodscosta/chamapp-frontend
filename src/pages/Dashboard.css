@@ -122,3 +122,29 @@
   padding: 4rem;
   color: var(--text-secondary);
 }
+
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.products-table th,
+.products-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.products-table th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  background-color: #F8FAFC;
+}
+
+.products-table tr:hover td {
+  background-color: #F8FAFC;
+}
