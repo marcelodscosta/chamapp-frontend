@@ -63,6 +63,24 @@ export function Dashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [period, setPeriod] = useState(7)
   const [isLoading, setIsLoading] = useState(true)
+  const [storeOpen, setStoreOpen] = useState(true)
+
+  useEffect(() => {
+    api.get('/settings')
+      .then(res => setStoreOpen(res.data.settings.store_open))
+      .catch(console.error)
+  }, [])
+
+  const toggleStore = async () => {
+    const newState = !storeOpen
+    setStoreOpen(newState)
+    try {
+      await api.put('/settings', { store_open: newState })
+    } catch {
+      setStoreOpen(!newState)
+      alert('Erro ao alterar status da loja')
+    }
+  }
 
   useEffect(() => {
     setIsLoading(true)
@@ -126,9 +144,23 @@ export function Dashboard() {
 
   return (
     <div className="dashboard-container">
-      <header className="page-header">
+      <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1>Dashboard</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+            <h1 style={{ margin: 0 }}>Dashboard</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', padding: '4px 12px', borderRadius: '20px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: storeOpen ? 'var(--accent-success)' : 'var(--accent-danger)' }}>
+                {storeOpen ? '🟢 Aberta' : '🔴 Fechada'}
+              </span>
+              <button 
+                onClick={toggleStore}
+                className="btn"
+                style={{ padding: '2px 8px', fontSize: '0.75rem', backgroundColor: storeOpen ? '#FEE2E2' : '#E0E7FF', color: storeOpen ? 'var(--accent-danger)' : 'var(--accent-primary)', border: 'none', borderRadius: '4px' }}
+              >
+                {storeOpen ? 'Fechar' : 'Abrir'}
+              </button>
+            </div>
+          </div>
           <p>Visão geral dos últimos {period} dias.</p>
         </div>
         <div className="period-selector">
