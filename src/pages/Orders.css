@@ -1,0 +1,216 @@
+.orders-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.status-filter-bar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full, 9999px);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-chip:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.filter-chip.active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #fff;
+}
+
+.orders-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.orders-body:has(.order-detail-panel) {
+  grid-template-columns: 1fr 360px;
+}
+
+.orders-table-card {
+  overflow: hidden;
+}
+
+.order-id {
+  font-family: 'SFMono-Regular', 'Consolas', monospace;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.date-cell {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.selected-row {
+  background-color: #F0F7FF !important;
+}
+
+.btn-icon {
+  padding: 0.375rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-icon:hover {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+}
+
+/* Status badges */
+.status-badge {
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-warning { background: #FEF3C7; color: #92400E; }
+.status-info { background: #DBEAFE; color: #1E40AF; }
+.status-purple { background: #EDE9FE; color: #5B21B6; }
+.status-cyan { background: #CFFAFE; color: #164E63; }
+.status-success { background: #D1FAE5; color: #065F46; }
+.status-danger { background: #FEE2E2; color: #991B1B; }
+
+/* Detail panel */
+.order-detail-panel {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: sticky;
+  top: 1rem;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.detail-header h3 {
+  font-size: 1rem;
+}
+
+.detail-section {
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.detail-section:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.375rem;
+}
+
+.detail-value {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.detail-sub {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-top: 0.125rem;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  padding: 0.25rem 0;
+}
+
+.detail-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.total-final {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+  margin-top: 0.25rem;
+}
+
+.status-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.status-action-btn {
+  font-size: 0.8125rem;
+  padding: 0.375rem 0.75rem;
+}
+
+.btn-danger {
+  background-color: var(--accent-danger);
+  color: #fff;
+  border: none;
+}
+
+.btn-danger:hover {
+  background-color: #DC2626;
+}
+
+.empty-state {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.loading-state {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-secondary);
+}

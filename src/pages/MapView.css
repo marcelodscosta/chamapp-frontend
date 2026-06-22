@@ -1,0 +1,85 @@
+.map-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.map-kpis {
+  display: flex;
+  gap: 1rem;
+}
+
+.map-kpi {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.875rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  min-width: 100px;
+}
+
+.map-kpi-num {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.map-kpi-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.map-filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.map-card {
+  overflow: hidden;
+  padding: 0;
+}
+
+.map-no-coords-warning {
+  padding: 0.75rem 1.25rem;
+  background: #FEF3C7;
+  color: #92400E;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #FDE68A;
+}
+
+.map-popup strong {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.9rem;
+}
+
+.map-popup p {
+  font-size: 0.8125rem;
+  margin: 0.125rem 0;
+  color: #374151;
+}
+
+.leaflet-container { z-index: 1; }
+
+/* Compartilhados */
+.filter-chip {
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--border-color);
+  border-radius: 9999px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-chip:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+.filter-chip.active { background: var(--accent-primary); border-color: var(--accent-primary); color: #fff; }
+
+.loading-state { padding: 3rem; text-align: center; color: var(--text-secondary); }
