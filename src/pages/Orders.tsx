@@ -256,7 +256,9 @@ export function Orders() {
                         <div className="order-customer">
                           <strong>{order.customer?.name}</strong>
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                            {order.address.street}, {order.address.number}
+                            {order.address
+                              ? `${order.address.street}, ${order.address.number}`
+                              : 'Endereço não informado'}
                           </div>
                           {(order as any).is_scheduled && (
                             <div style={{ marginTop: '4px', fontSize: '0.8rem', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
