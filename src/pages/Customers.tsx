@@ -21,7 +21,15 @@ interface CustomerWithStats extends User {
   totalOrders?: number
   lastOrderAt?: string
   daysSinceLastOrder?: number | null
-  loyaltyPoints?: number
+  loyaltyAccount?: {
+    balance_points: number
+    balance_cashback: number
+    last_activity_at: string
+    tier: {
+      name: string
+      color_hex: string | null
+    }
+  } | null
 }
 
 export function Customers() {
@@ -40,10 +48,19 @@ export function Customers() {
       
       // Tenta enriquecer com dados de pedidos (pode não ter acesso individual,
       // mas o backend permite filtrar por customerId)
-      const enriched: CustomerWithStats[] = customerList.map((u) => ({
-        ...u,
-        daysSinceLastOrder: null,
-      }))
+      const enriched: CustomerWithStats[] = customerList.map((u: any) => {
+        let days = null
+        if (u.loyaltyAccount && u.loyaltyAccount.last_activity_at) {
+          const lastActivity = new Date(u.loyaltyAccount.last_activity_at)
+          const diffTime = Math.abs(new Date().getTime() - lastActivity.getTime())
+          days = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        }
+        
+        return {
+          ...u,
+          daysSinceLastOrder: days,
+        }
+      })
       
       setCustomers(enriched)
     } catch {
@@ -150,6 +167,7 @@ export function Customers() {
                   <th>Telefone</th>
                   <th>Membro desde</th>
                   <th>Recorrência</th>
+                  <th>Fidelidade</th>
                   <th>Status</th>
                   <th style={{ textAlign: 'right' }}>Ações</th>
                 </tr>
@@ -172,6 +190,27 @@ export function Customers() {
                     </td>
                     <td>
                       <RecurrencyBadge days={customer.daysSinceLastOrder ?? null} />
+                    </td>
+                    <td>
+                      {customer.loyaltyAccount ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <span 
+                            className="badge" 
+                            style={{ 
+                              backgroundColor: customer.loyaltyAccount.tier.color_hex ? `${customer.loyaltyAccount.tier.color_hex}20` : 'var(--bg-secondary)',
+                              color: customer.loyaltyAccount.tier.color_hex ?? 'var(--text-primary)',
+                              width: 'fit-content'
+                            }}
+                          >
+                            {customer.loyaltyAccount.tier.name}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                            {customer.loyaltyAccount.balance_points} pts
+                          </span>
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>—</span>
+                      )}
                     </td>
                     <td>
                       <span className={`status-badge ${customer.isActive ? 'status-success' : 'status-danger'}`}>
