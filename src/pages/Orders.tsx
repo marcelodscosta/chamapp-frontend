@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Eye } from 'lucide-react'
 import { api } from '../services/api'
 import type { Order, OrderStatus } from '../types'
@@ -56,6 +56,61 @@ export function Orders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
+  const [newOrderAlert, setNewOrderAlert] = useState<{ show: boolean, orderId?: string }>({ show: false })
+  
+  // Audio configuration
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const beepIntervalRef = useRef<number | null>(null)
+
+  // Initialize AudioContext on first interaction to avoid autoplay blocks
+  useEffect(() => {
+    const initAudio = () => {
+      if (!audioCtxRef.current) {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+        if (AudioContextClass) audioCtxRef.current = new AudioContextClass()
+      }
+      if (audioCtxRef.current?.state === 'suspended') {
+        audioCtxRef.current.resume()
+      }
+    }
+    document.addEventListener('click', initAudio, { once: true })
+    return () => document.removeEventListener('click', initAudio)
+  }, [])
+
+  const startBeep = useCallback(() => {
+    if (beepIntervalRef.current) return
+    const play = () => {
+      if (!audioCtxRef.current) return
+      if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume()
+      }
+      
+      const osc = audioCtxRef.current.createOscillator()
+      const gain = audioCtxRef.current.createGain()
+      
+      osc.type = 'square' // Som quadrado é muito mais nítido e alto (estilo alarme)
+      osc.frequency.value = 800 
+      gain.gain.value = 0.05 // Square é alto, volume 5%
+      
+      osc.connect(gain)
+      gain.connect(audioCtxRef.current.destination)
+      
+      const now = audioCtxRef.current.currentTime
+      osc.start(now)
+      osc.stop(now + 0.3) // Toca por 300ms
+    }
+    
+    play()
+    beepIntervalRef.current = window.setInterval(play, 1000) // Toca a cada 1 segundo
+  }, [])
+
+  const stopBeep = useCallback(() => {
+    if (beepIntervalRef.current) {
+      clearInterval(beepIntervalRef.current)
+      beepIntervalRef.current = null
+    }
+  }, [])
+
   const loadOrders = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -72,10 +127,41 @@ export function Orders() {
 
   useEffect(() => { loadOrders() }, [loadOrders])
 
+  useEffect(() => {
+    import('../lib/socket').then(({ socket }) => {
+      const handleNewOrder = (order: Order) => {
+        setNewOrderAlert({ show: true, orderId: order.id })
+        
+        // Se for um pedido simulado, inserimos ele diretamente na tabela, senão recarregamos do DB
+        if (order.id.startsWith('sim-')) {
+          setOrders((prev) => [order, ...prev])
+        } else {
+          loadOrders()
+        }
+
+        startBeep()
+      }
+      
+      socket.on('order:created', handleNewOrder)
+      return () => {
+        socket.off('order:created', handleNewOrder)
+      }
+    })
+  }, [loadOrders, startBeep])
+
+  useEffect(() => {
+    if (!newOrderAlert.show) {
+      stopBeep()
+    }
+  }, [newOrderAlert.show, stopBeep])
+
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     setUpdatingId(orderId)
     try {
-      await api.patch(`/orders/${orderId}/status`, { status: newStatus })
+      if (!orderId.startsWith('sim-')) {
+        await api.patch(`/orders/${orderId}/status`, { status: newStatus })
+      }
+      
       setOrders((prev) =>
         prev.map((o) => o.id === orderId ? { ...o, status: newStatus } : o)
       )
@@ -112,6 +198,36 @@ export function Orders() {
       </div>
 
       <div className="orders-body">
+        {newOrderAlert.show && (
+          <div className="new-order-toast" style={{
+            backgroundColor: 'var(--accent-primary)',
+            color: 'white',
+            padding: '1rem',
+            borderRadius: '8px',
+            marginBottom: '1rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            animation: 'fadeIn 0.3s ease-out'
+          }}>
+            <span>🔔 <strong>Novo pedido recebido!</strong> (#{newOrderAlert.orderId?.slice(-6).toUpperCase()})</span>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <button 
+                onClick={() => {
+                  if (newOrderAlert.orderId) handleStatusChange(newOrderAlert.orderId, 'CONFIRMED')
+                  setNewOrderAlert({ show: false })
+                }}
+                className="btn"
+                style={{ backgroundColor: 'white', color: 'var(--accent-primary)', fontWeight: 'bold' }}
+              >
+                Aceitar Pedido
+              </button>
+              <button onClick={() => setNewOrderAlert({ show: false })} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+            </div>
+          </div>
+        )}
+
         {/* Tabela de pedidos */}
         <div className="card orders-table-card">
           {isLoading ? (
