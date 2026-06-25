@@ -73,9 +73,10 @@ export interface Address {
 export interface OrderItem {
   id: string
   productId: string
-  product: Product
+  name: string
   quantity: number
-  unitPrice: number
+  price: number
+  subtotal: number
   notes?: string
 }
 

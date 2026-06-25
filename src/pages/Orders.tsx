@@ -343,8 +343,8 @@ export function Orders() {
               <p className="detail-label">Itens</p>
               {selectedOrder.items?.map((item) => (
                 <div key={item.id} className="detail-item">
-                  <span>{item.quantity}x {item.product?.name ?? item.productId}</span>
-                  <span>{formatCurrency(item.unitPrice * item.quantity)}</span>
+                  <span>{item.quantity}x {item.name || 'Produto indisponível'}</span>
+                  <span>{formatCurrency(Number(item.price) * item.quantity)}</span>
                 </div>
               ))}
             </div>

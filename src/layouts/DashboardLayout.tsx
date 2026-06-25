@@ -6,6 +6,7 @@ import {
   Package,
   Users,
   Settings,
+  Megaphone,
   LogOut,
   Store,
 } from 'lucide-react'
@@ -47,6 +48,10 @@ export function DashboardLayout() {
           <NavLink to="/customers" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <Users size={18} />
             <span>Clientes</span>
+          </NavLink>
+          <NavLink to="/marketing" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <Megaphone size={18} />
+            <span>Marketing (Push)</span>
           </NavLink>
           <NavLink to="/map" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <MapPin size={18} />

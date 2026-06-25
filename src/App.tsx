@@ -8,6 +8,7 @@ import { MapView } from './pages/MapView'
 import { Catalog } from './pages/Catalog'
 import { Orders } from './pages/Orders'
 import { Customers } from './pages/Customers'
+import { Marketing } from './pages/Marketing'
 import { Settings } from './pages/Settings'
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
             <Route path="orders" element={<Orders />} />
             <Route path="catalog" element={<Catalog />} />
             <Route path="customers" element={<Customers />} />
+            <Route path="marketing" element={<Marketing />} />
             <Route path="map" element={<MapView />} />
             <Route path="settings" element={<Settings />} />
           </Route>
