@@ -58,63 +58,7 @@ export function Orders() {
 
   const [newOrderAlert, setNewOrderAlert] = useState<{ show: boolean, orderId?: string }>({ show: false })
   
-  // Audio configuration
-  const audioCtxRef = useRef<AudioContext | null>(null)
-  const beepIntervalRef = useRef<number | null>(null)
-
-  // Initialize AudioContext on first interaction to avoid autoplay blocks
-  useEffect(() => {
-    const initAudio = () => {
-      if (!audioCtxRef.current) {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
-        if (AudioContextClass) audioCtxRef.current = new AudioContextClass()
-      }
-      if (audioCtxRef.current?.state === 'suspended') {
-        audioCtxRef.current.resume()
-      }
-    }
-    document.addEventListener('click', initAudio)
-    return () => document.removeEventListener('click', initAudio)
-  }, [])
-
-  const startBeep = useCallback(() => {
-    if (beepIntervalRef.current) return
-    const play = () => {
-      if (!audioCtxRef.current) {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
-        if (AudioContextClass) audioCtxRef.current = new AudioContextClass()
-      }
-      if (audioCtxRef.current?.state === 'suspended') {
-        audioCtxRef.current.resume().catch(() => {}) // Pode falhar se não houver interação
-      }
-      
-      if (!audioCtxRef.current || audioCtxRef.current.state === 'suspended') return
-      
-      const osc = audioCtxRef.current.createOscillator()
-      const gain = audioCtxRef.current.createGain()
-      
-      osc.type = 'square' // Som quadrado é muito mais nítido e alto (estilo alarme)
-      osc.frequency.value = 800 
-      gain.gain.value = 0.05 // Square é alto, volume 5%
-      
-      osc.connect(gain)
-      gain.connect(audioCtxRef.current.destination)
-      
-      const now = audioCtxRef.current.currentTime
-      osc.start(now)
-      osc.stop(now + 0.3) // Toca por 300ms
-    }
-    
-    play()
-    beepIntervalRef.current = window.setInterval(play, 2000) // Toca a cada 2 segundos para não ficar tão irritante
-  }, [])
-
-  const stopBeep = useCallback(() => {
-    if (beepIntervalRef.current) {
-      clearInterval(beepIntervalRef.current)
-      beepIntervalRef.current = null
-    }
-  }, [])
+  // O alerta sonoro foi movido para o DashboardLayout (Global)
 
   const loadOrders = useCallback(async () => {
     setIsLoading(true)
@@ -154,8 +98,6 @@ export function Orders() {
         } else {
           loadOrders()
         }
-
-        startBeep()
       }
       
       socket.on('order:created', handleNewOrder)
@@ -163,16 +105,9 @@ export function Orders() {
         socket.off('order:created', handleNewOrder)
       }
     })
-  }, [loadOrders, startBeep])
+  }, [loadOrders])
 
-  useEffect(() => {
-    const hasPending = orders.some((o) => o.status === 'PENDING')
-    if (hasPending) {
-      startBeep()
-    } else {
-      stopBeep()
-    }
-  }, [orders, startBeep, stopBeep])
+  // Verificação local removida pois o DashboardLayout já cuida disso.
 
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     setUpdatingId(orderId)

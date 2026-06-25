@@ -98,12 +98,32 @@ export function Dashboard() {
     }
   }
 
-  useEffect(() => {
+  const loadMetrics = () => {
     setIsLoading(true)
     api.get(`/dashboard/metrics?days=${period}`)
       .then((res) => setMetrics(res.data.metrics))
       .catch(() => {/* usar mock em caso de erro de conexão */})
       .finally(() => setIsLoading(false))
+  }
+
+  useEffect(() => {
+    loadMetrics()
+  }, [period])
+
+  useEffect(() => {
+    import('../lib/socket').then(({ socket }) => {
+      const handleUpdate = () => {
+        api.get(`/dashboard/metrics?days=${period}`).then((res) => setMetrics(res.data.metrics)).catch(() => {})
+      }
+      
+      socket.on('order:created', handleUpdate)
+      socket.on('order:status_updated', handleUpdate)
+      
+      return () => {
+        socket.off('order:created', handleUpdate)
+        socket.off('order:status_updated', handleUpdate)
+      }
+    })
   }, [period])
 
   // ordersByStatus vem como Record<string, number> ex: { PENDING: 3, DELIVERED: 10 }
@@ -230,6 +250,41 @@ export function Dashboard() {
         <div className="loading-state"><p>Carregando métricas...</p></div>
       ) : (
         <>
+          {/* Active Orders Banner */}
+          {((metrics?.ordersByStatus?.PENDING ?? 0) + (metrics?.ordersByStatus?.CONFIRMED ?? 0) + (metrics?.ordersByStatus?.PREPARING ?? 0) + (metrics?.ordersByStatus?.OUT_FOR_DELIVERY ?? 0)) > 0 && (
+            <div style={{
+              backgroundColor: (metrics?.ordersByStatus?.PENDING ?? 0) > 0 ? '#FEF3C7' : '#E0F2FE',
+              borderLeft: `4px solid ${(metrics?.ordersByStatus?.PENDING ?? 0) > 0 ? '#F59E0B' : '#3B82F6'}`,
+              padding: '1rem 1.5rem',
+              borderRadius: '8px',
+              marginBottom: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, color: (metrics?.ordersByStatus?.PENDING ?? 0) > 0 ? '#92400E' : '#075985', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShoppingBag size={20} />
+                  {(metrics?.ordersByStatus?.PENDING ?? 0) > 0 
+                    ? `${metrics?.ordersByStatus?.PENDING ?? 0} pedido(s) aguardando aprovação!` 
+                    : `${(metrics?.ordersByStatus?.CONFIRMED ?? 0) + (metrics?.ordersByStatus?.PREPARING ?? 0) + (metrics?.ordersByStatus?.OUT_FOR_DELIVERY ?? 0)} pedido(s) em andamento`}
+                </h3>
+                <p style={{ margin: '4px 0 0 0', color: (metrics?.ordersByStatus?.PENDING ?? 0) > 0 ? '#B45309' : '#0369A1', fontSize: '0.875rem' }}>
+                  {(metrics?.ordersByStatus?.PENDING ?? 0) > 0 
+                    ? 'Acesse a aba de Pedidos para confirmar os pedidos rapidamente.'
+                    : 'Você tem pedidos ativos (Confirmados, Preparando ou Em Rota).'}
+                </p>
+              </div>
+              <button 
+                onClick={() => window.location.href = '/orders'}
+                className="btn btn-primary"
+                style={{ backgroundColor: (metrics?.ordersByStatus?.PENDING ?? 0) > 0 ? '#F59E0B' : '#3B82F6', border: 'none' }}
+              >
+                Ver Pedidos
+              </button>
+            </div>
+          )}
+
           <div className="kpi-grid">
             <KpiCard label="Faturamento" value={formatCurrency(metrics?.totalRevenue ?? 0)} icon={DollarSign} color="#0066FF" />
             <KpiCard label="Total de Pedidos" value={String(metrics?.totalOrders ?? 0)} icon={ShoppingBag} color="#10B981" />

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useCallback } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -11,11 +12,97 @@ import {
   Store,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { api } from '../services/api'
 import './DashboardLayout.css'
 
 export function DashboardLayout() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+
+  // --- LÓGICA DE ALERTA SONORO GLOBAL ---
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const beepIntervalRef = useRef<number | null>(null)
+
+  const startBeep = useCallback(() => {
+    if (beepIntervalRef.current) return
+    const play = () => {
+      if (!audioCtxRef.current) {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+        if (AudioContextClass) audioCtxRef.current = new AudioContextClass()
+      }
+      if (audioCtxRef.current?.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {})
+      }
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'suspended') return
+      
+      const osc = audioCtxRef.current.createOscillator()
+      const gain = audioCtxRef.current.createGain()
+      osc.type = 'square'
+      osc.frequency.value = 800 
+      gain.gain.value = 0.05
+      osc.connect(gain)
+      gain.connect(audioCtxRef.current.destination)
+      
+      const now = audioCtxRef.current.currentTime
+      osc.start(now)
+      osc.stop(now + 0.3)
+    }
+    
+    play()
+    beepIntervalRef.current = window.setInterval(play, 2000)
+  }, [])
+
+  const stopBeep = useCallback(() => {
+    if (beepIntervalRef.current) {
+      clearInterval(beepIntervalRef.current)
+      beepIntervalRef.current = null
+    }
+  }, [])
+
+  const checkPendingOrders = useCallback(async () => {
+    try {
+      const res = await api.get('/orders', { params: { limit: 1, status: 'PENDING' } })
+      const pendingCount = res.data.orders?.length || res.data.data?.length || 0
+      if (pendingCount > 0) {
+        startBeep()
+      } else {
+        stopBeep()
+      }
+    } catch (err) {
+      // Falha ao verificar
+    }
+  }, [startBeep, stopBeep])
+
+  // Inicializa o áudio ao primeiro clique do usuário para destravar o Autoplay do navegador
+  useEffect(() => {
+    const initAudio = () => {
+      if (!audioCtxRef.current) {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+        if (AudioContextClass) audioCtxRef.current = new AudioContextClass()
+      }
+      if (audioCtxRef.current?.state === 'suspended') {
+        audioCtxRef.current.resume()
+      }
+    }
+    document.addEventListener('click', initAudio)
+    return () => document.removeEventListener('click', initAudio)
+  }, [])
+
+  // Escuta WebSocket e verifica na montagem
+  useEffect(() => {
+    checkPendingOrders()
+
+    import('../lib/socket').then(({ socket }) => {
+      socket.on('order:created', checkPendingOrders)
+      socket.on('order:status_updated', checkPendingOrders)
+      
+      return () => {
+        socket.off('order:created', checkPendingOrders)
+        socket.off('order:status_updated', checkPendingOrders)
+      }
+    })
+  }, [checkPendingOrders])
+  // --------------------------------------
 
   const handleLogout = () => {
     logout()
