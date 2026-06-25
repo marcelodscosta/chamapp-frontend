@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Search, Users, Clock, Star } from 'lucide-react'
+import { Search, Users, Clock, Star, Edit2 } from 'lucide-react'
 import { api } from '../services/api'
 import type { User } from '../types'
 import './Customers.css'
@@ -15,6 +15,65 @@ function RecurrencyBadge({ days }: { days: number | null }) {
   if (days <= 30) return <span className="badge badge-warning">Regular (≤30d)</span>
   if (days <= 90) return <span className="badge badge-warning-dark">Em risco (≤90d)</span>
   return <span className="badge badge-danger">Inativo (&gt;90d)</span>
+}
+
+function CustomerModal({
+  customer,
+  onClose,
+  onSuccess,
+}: {
+  customer: User
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [name, setName] = useState(customer.name)
+  const [email, setEmail] = useState(customer.email)
+  const [phone, setPhone] = useState(customer.phone || '')
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    try {
+      await api.put(`/users/${customer.id}`, { name, email, phone })
+      onSuccess()
+    } catch (err: any) {
+      alert(err?.response?.data?.message ?? 'Erro ao salvar cliente.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>Editar Cliente</h3>
+          <button className="btn-icon" onClick={onClose} type="button">✕</button>
+        </div>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="input-group">
+            <label className="input-label">Nome</label>
+            <input className="input-field" value={name} onChange={(e) => setName(e.target.value)} required />
+          </div>
+          <div className="input-group">
+            <label className="input-label">E-mail</label>
+            <input type="email" className="input-field" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+          <div className="input-group">
+            <label className="input-label">Telefone</label>
+            <input className="input-field" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
+            <button type="submit" className="btn btn-primary" disabled={isLoading}>
+              {isLoading ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
 }
 
 interface CustomerWithStats extends User {
@@ -37,6 +96,7 @@ export function Customers() {
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [customerModal, setCustomerModal] = useState<{ open: boolean; item: User | null }>({ open: false, item: null })
 
   const loadCustomers = useCallback(async () => {
     setIsLoading(true)
@@ -58,6 +118,8 @@ export function Customers() {
         
         return {
           ...u,
+          createdAt: u.created_at ?? u.createdAt,
+          isActive: u.is_active !== undefined ? u.is_active : (u.isActive ?? true),
           daysSinceLastOrder: days,
         }
       })
@@ -219,6 +281,14 @@ export function Customers() {
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <button
+                        className="btn-icon"
+                        onClick={() => setCustomerModal({ open: true, item: customer })}
+                        title="Editar cliente"
+                        style={{ marginRight: 8 }}
+                      >
+                        <Edit2 size={15} />
+                      </button>
+                      <button
                         className={`btn btn-secondary toggle-btn ${customer.isActive ? 'toggle-deactivate' : 'toggle-activate'}`}
                         onClick={() => handleToggleStatus(customer.id)}
                         title={customer.isActive ? 'Bloquear cliente' : 'Desbloquear cliente'}
@@ -240,6 +310,17 @@ export function Customers() {
           </div>
         )}
       </div>
+
+      {customerModal.open && customerModal.item && (
+        <CustomerModal
+          customer={customerModal.item}
+          onClose={() => setCustomerModal({ open: false, item: null })}
+          onSuccess={() => {
+            setCustomerModal({ open: false, item: null })
+            loadCustomers()
+          }}
+        />
+      )}
     </div>
   )
 }
