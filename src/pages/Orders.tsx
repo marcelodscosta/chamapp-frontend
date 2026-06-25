@@ -73,17 +73,22 @@ export function Orders() {
         audioCtxRef.current.resume()
       }
     }
-    document.addEventListener('click', initAudio, { once: true })
+    document.addEventListener('click', initAudio)
     return () => document.removeEventListener('click', initAudio)
   }, [])
 
   const startBeep = useCallback(() => {
     if (beepIntervalRef.current) return
     const play = () => {
-      if (!audioCtxRef.current) return
-      if (audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume()
+      if (!audioCtxRef.current) {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+        if (AudioContextClass) audioCtxRef.current = new AudioContextClass()
       }
+      if (audioCtxRef.current?.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {}) // Pode falhar se não houver interação
+      }
+      
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'suspended') return
       
       const osc = audioCtxRef.current.createOscillator()
       const gain = audioCtxRef.current.createGain()
@@ -101,7 +106,7 @@ export function Orders() {
     }
     
     play()
-    beepIntervalRef.current = window.setInterval(play, 1000) // Toca a cada 1 segundo
+    beepIntervalRef.current = window.setInterval(play, 2000) // Toca a cada 2 segundos para não ficar tão irritante
   }, [])
 
   const stopBeep = useCallback(() => {
@@ -117,7 +122,18 @@ export function Orders() {
       const params: Record<string, string> = { limit: '100' }
       if (filterStatus) params.status = filterStatus
       const res = await api.get('/orders', { params })
-      setOrders(res.data.orders ?? res.data.data ?? [])
+      const data = res.data.orders ?? res.data.data ?? []
+      
+      const mappedOrders = data.map((o: any) => ({
+        ...o,
+        total: o.total_value !== undefined ? Number(o.total_value) : o.total,
+        paymentMethod: o.payment_method ?? o.paymentMethod,
+        createdAt: o.created_at ?? o.createdAt,
+        deliveryFee: o.delivery_fee !== undefined ? Number(o.delivery_fee) : o.deliveryFee,
+        subtotal: o.subtotal !== undefined ? Number(o.subtotal) : o.subtotal,
+      }))
+
+      setOrders(mappedOrders)
     } catch {
       setOrders([])
     } finally {
@@ -150,10 +166,13 @@ export function Orders() {
   }, [loadOrders, startBeep])
 
   useEffect(() => {
-    if (!newOrderAlert.show) {
+    const hasPending = orders.some((o) => o.status === 'PENDING')
+    if (hasPending) {
+      startBeep()
+    } else {
       stopBeep()
     }
-  }, [newOrderAlert.show, stopBeep])
+  }, [orders, startBeep, stopBeep])
 
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     setUpdatingId(orderId)
@@ -215,13 +234,17 @@ export function Orders() {
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
               <button 
                 onClick={() => {
-                  if (newOrderAlert.orderId) handleStatusChange(newOrderAlert.orderId, 'CONFIRMED')
                   setNewOrderAlert({ show: false })
+                  // Encontra o pedido e foca nele
+                  if (newOrderAlert.orderId) {
+                    const order = orders.find(o => o.id === newOrderAlert.orderId)
+                    if (order) setSelectedOrder(order)
+                  }
                 }}
                 className="btn"
                 style={{ backgroundColor: 'white', color: 'var(--accent-primary)', fontWeight: 'bold' }}
               >
-                Aceitar Pedido
+                Ver Pedido
               </button>
               <button onClick={() => setNewOrderAlert({ show: false })} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
             </div>
