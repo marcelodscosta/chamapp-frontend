@@ -173,3 +173,34 @@ export interface PaginatedResponse<T> {
   page: number
   limit: number
 }
+
+// --- Partners & Banners ---
+export type BannerTargetType = 'EXTERNAL_LINK' | 'PARTNER_PROFILE'
+
+export interface Partner {
+  id: string
+  name: string
+  logo_url?: string
+  description?: string
+  phone?: string
+  address?: string
+  website?: string
+  is_active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PartnerBanner {
+  id: string
+  partnerId: string
+  partner?: Partner
+  image_url: string
+  target_type: BannerTargetType
+  target_url?: string
+  priority: number
+  views_count: number
+  clicks_count: number
+  is_active: boolean
+  expires_at?: string
+  createdAt: string
+}

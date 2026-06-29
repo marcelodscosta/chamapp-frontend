@@ -10,6 +10,7 @@ import {
   Megaphone,
   LogOut,
   Store,
+  Handshake,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../services/api'
@@ -143,6 +144,10 @@ export function DashboardLayout() {
           <NavLink to="/map" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <MapPin size={18} />
             <span>Mapa de Entregas</span>
+          </NavLink>
+          <NavLink to="/partners" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <Handshake size={18} />
+            <span>Parcerias</span>
           </NavLink>
           <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <Settings size={18} />

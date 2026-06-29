@@ -10,6 +10,7 @@ import { Orders } from './pages/Orders'
 import { Customers } from './pages/Customers'
 import { Marketing } from './pages/Marketing'
 import { Settings } from './pages/Settings'
+import { Partners } from './pages/Partners'
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
             <Route path="marketing" element={<Marketing />} />
             <Route path="map" element={<MapView />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="partners" element={<Partners />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
