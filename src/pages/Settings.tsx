@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Save, Store, Star, AlertCircle, CheckCircle, CalendarDays, Plus, Trash2 } from 'lucide-react'
+import { Save, Store, Star, AlertCircle, CheckCircle, CalendarDays, Plus, Trash2, HelpCircle } from 'lucide-react'
 import { api } from '../services/api'
 import type { StoreSettings, LoyaltyConfig } from '../types'
 import './Settings.css'
@@ -329,34 +329,76 @@ export function Settings() {
             <h3 className="settings-section-title">Configurações do Programa</h3>
             <div className="settings-grid">
               <div className="input-group">
-                <label className="input-label">Modo do Programa</label>
+                <div className="label-with-tooltip">
+                  <label className="input-label">Modo do Programa</label>
+                  <div className="tooltip-container" tabIndex={0}>
+                    <HelpCircle size={14} className="tooltip-icon" />
+                    <span className="tooltip-text">Define se o programa de fidelidade opera acumulando Pontos virtuais ou retornando Cashback em dinheiro (R$).</span>
+                  </div>
+                </div>
                 <select className="input-field" value={loyaltyConfig.program_mode} onChange={(e) => handleLoyaltyChange('program_mode', e.target.value)}>
                   <option value="POINTS">Pontos</option>
                   <option value="CASHBACK">Cashback</option>
                 </select>
               </div>
               <div className="input-group">
-                <label className="input-label">Pontos por R$ 1,00 gasto</label>
+                <div className="label-with-tooltip">
+                  <label className="input-label">Pontos por R$ 1,00 gasto</label>
+                  <div className="tooltip-container" tabIndex={0}>
+                    <HelpCircle size={14} className="tooltip-icon" />
+                    <span className="tooltip-text">Quantidade de pontos que o cliente ganha a cada R$ 1,00 gasto em compras na loja. Exemplo: se configurado como 10, uma compra de R$ 50,00 gera 500 pontos.</span>
+                  </div>
+                </div>
                 <input className="input-field" type="number" step="0.1" min="0" value={loyaltyConfig.points_per_real} onChange={(e) => handleLoyaltyChange('points_per_real', parseFloat(e.target.value))} />
               </div>
               <div className="input-group">
-                <label className="input-label">Taxa de Conversão (pts → R$)</label>
+                <div className="label-with-tooltip">
+                  <label className="input-label">Taxa de Conversão (pts → R$)</label>
+                  <div className="tooltip-container" tabIndex={0}>
+                    <HelpCircle size={14} className="tooltip-icon" />
+                    <span className="tooltip-text">Quantidade de pontos necessários para obter R$ 1,00 de desconto. Exemplo: se configurado como 10, cada 10 pontos equivalem a R$ 1,00 de desconto (ex: 500 pts = R$ 50,00 de desconto).</span>
+                  </div>
+                </div>
                 <input className="input-field" type="number" step="0.01" min="0" value={loyaltyConfig.conversion_rate} onChange={(e) => handleLoyaltyChange('conversion_rate', parseFloat(e.target.value))} />
               </div>
               <div className="input-group">
-                <label className="input-label">Mínimo de Pontos para Resgatar</label>
+                <div className="label-with-tooltip">
+                  <label className="input-label">Mínimo de Pontos para Resgatar</label>
+                  <div className="tooltip-container" tabIndex={0}>
+                    <HelpCircle size={14} className="tooltip-icon" />
+                    <span className="tooltip-text">Quantidade mínima de pontos que o cliente deve acumular antes de conseguir realizar um resgate no carrinho do app.</span>
+                  </div>
+                </div>
                 <input className="input-field" type="number" min="0" value={loyaltyConfig.min_points_to_redeem} onChange={(e) => handleLoyaltyChange('min_points_to_redeem', parseInt(e.target.value))} />
               </div>
               <div className="input-group">
-                <label className="input-label">% Máximo de Desconto no Pedido</label>
+                <div className="label-with-tooltip">
+                  <label className="input-label">% Máximo de Desconto no Pedido</label>
+                  <div className="tooltip-container" tabIndex={0}>
+                    <HelpCircle size={14} className="tooltip-icon" />
+                    <span className="tooltip-text">Limite máximo de desconto que pode ser pago usando os pontos acumulados, calculado sobre o valor total do pedido. Evita que o pedido saia totalmente de graça.</span>
+                  </div>
+                </div>
                 <input className="input-field" type="number" step="1" min="0" max="100" value={loyaltyConfig.max_redeem_percent} onChange={(e) => handleLoyaltyChange('max_redeem_percent', parseFloat(e.target.value))} />
               </div>
               <div className="input-group">
-                <label className="input-label">Expiração dos Pontos (dias)</label>
+                <div className="label-with-tooltip">
+                  <label className="input-label">Expiração dos Pontos (dias)</label>
+                  <div className="tooltip-container" tabIndex={0}>
+                    <HelpCircle size={14} className="tooltip-icon" />
+                    <span className="tooltip-text">Prazo de validade de cada ponto acumulado, contado a partir do dia em que foi ganho. Deixe em branco se os pontos não expirarem.</span>
+                  </div>
+                </div>
                 <input className="input-field" type="number" min="1" value={loyaltyConfig.expiry_days ?? ''} placeholder="Sem expiração" onChange={(e) => handleLoyaltyChange('expiry_days', e.target.value ? parseInt(e.target.value) : undefined)} />
               </div>
               <div className="input-group">
-                <label className="input-label">Inatividade para expirar (dias)</label>
+                <div className="label-with-tooltip">
+                  <label className="input-label">Inatividade para expirar (dias)</label>
+                  <div className="tooltip-container" tabIndex={0}>
+                    <HelpCircle size={14} className="tooltip-icon" />
+                    <span className="tooltip-text">Se o cliente passar este número de dias sem realizar nenhuma compra ou ação na loja, todo o saldo acumulado de pontos dele será zerado de uma vez.</span>
+                  </div>
+                </div>
                 <input className="input-field" type="number" min="1" value={loyaltyConfig.inactivity_days ?? ''} placeholder="Não expira por inatividade" onChange={(e) => handleLoyaltyChange('inactivity_days', e.target.value ? parseInt(e.target.value) : undefined)} />
               </div>
             </div>
