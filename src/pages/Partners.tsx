@@ -46,6 +46,7 @@ export function Partners() {
     target_type: 'EXTERNAL_LINK' as 'EXTERNAL_LINK' | 'PARTNER_PROFILE',
     target_url: '',
     priority: 0,
+    show_on_home: false,
     expires_at: ''
   })
 
@@ -424,6 +425,10 @@ export function Partners() {
                       <label className="input-label">Data de Expiração (Opcional)</label>
                       <input className="input-field" type="date" value={bannerForm.expires_at ? bannerForm.expires_at.split('T')[0] : ''} onChange={(e) => setBannerForm({ ...bannerForm, expires_at: e.target.value })} />
                     </div>
+                    <div className="input-group col-span-2" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      <input type="checkbox" id="showOnHome" checked={bannerForm.show_on_home} onChange={(e) => setBannerForm({ ...bannerForm, show_on_home: e.target.checked })} style={{ width: '16px', height: '16px', accentColor: 'var(--accent-primary)' }} />
+                      <label htmlFor="showOnHome" style={{ fontSize: '0.875rem', color: 'var(--text-primary)', fontWeight: 500 }}>Mostrar na Tela Inicial (Home) do App?</label>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
                     <button className="btn" onClick={() => setEditingBannerId(null)}>Cancelar</button>
@@ -442,7 +447,7 @@ export function Partners() {
                     </p>
                     <button className="btn btn-primary" style={{ padding: '0.5rem 1rem' }} onClick={() => {
                       setEditingBannerId('new');
-                      setBannerForm({ partnerId: '', image_url: '', target_type: 'EXTERNAL_LINK', target_url: '', priority: 0, expires_at: '' });
+                      setBannerForm({ partnerId: '', image_url: '', target_type: 'EXTERNAL_LINK', target_url: '', priority: 0, show_on_home: false, expires_at: '' });
                       setSelectedBannerFile(null);
                       setBannerPreview(null);
                     }} disabled={partners.length === 0}>
@@ -487,7 +492,10 @@ export function Partners() {
                                 </span>
                               </div>
                             </td>
-                            <td style={{ padding: '0.75rem', color: 'var(--text-secondary)' }}>Fila #{banner.priority}</td>
+                            <td style={{ padding: '0.75rem', color: 'var(--text-secondary)' }}>
+                              <div>Fila #{banner.priority}</div>
+                              {banner.show_on_home && <span style={{ fontSize: '0.7rem', background: '#e0e7ff', color: '#4338ca', padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'inline-block', marginTop: '4px' }}>🏠 Home App</span>}
+                            </td>
                             <td style={{ padding: '0.75rem' }}>
                               <span style={{ padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600, background: banner.is_active ? '#ecfdf5' : '#fef2f2', color: banner.is_active ? '#047857' : '#b91c1c' }}>
                                 {banner.is_active ? 'Ativo' : 'Pausado'}
@@ -502,6 +510,7 @@ export function Partners() {
                                   target_type: banner.target_type,
                                   target_url: banner.target_url || '',
                                   priority: banner.priority,
+                                  show_on_home: banner.show_on_home || false,
                                   expires_at: banner.expires_at || ''
                                 });
                                 setSelectedBannerFile(null);

@@ -201,6 +201,7 @@ export interface PartnerBanner {
   views_count: number
   clicks_count: number
   is_active: boolean
+  show_on_home: boolean
   expires_at?: string
   createdAt: string
 }
