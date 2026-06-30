@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Eye, Clock } from 'lucide-react'
 import { api } from '../services/api'
 import type { Order, OrderStatus } from '../types'

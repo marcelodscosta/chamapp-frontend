@@ -20,10 +20,10 @@ function CategoryModal({
   onClose: () => void
   onSaved: () => void
 }) {
-  const existingImage = category?.image_url || (category as any)?.imageUrl
+  const existingImage = category?.imageUrl || (category as unknown as { image_url?: string })?.image_url
   const [name, setName] = useState(category?.name ?? '')
   const [description, setDescription] = useState(category?.description ?? '')
-  const [isActive, setIsActive] = useState(category?.is_active ?? true)
+  const [isActive, setIsActive] = useState(category?.isActive ?? (category as unknown as { is_active?: boolean })?.is_active ?? true)
   const [isLoading, setIsLoading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(existingImage ?? null)
@@ -61,8 +61,8 @@ function CategoryModal({
 
       onSaved()
       onClose()
-    } catch (err: any) {
-      alert(err?.response?.data?.message ?? 'Erro ao salvar categoria.')
+    } catch (err: unknown) {
+      alert((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erro ao salvar categoria.')
     } finally {
       setIsLoading(false)
     }
@@ -135,7 +135,7 @@ function ProductModal({
   onClose: () => void
   onSaved: () => void
 }) {
-  const existingImage = product?.imageUrl || (product as any)?.image_url
+  const existingImage = product?.imageUrl || (product as unknown as { image_url?: string })?.image_url
   const [form, setForm] = useState({
     name: product?.name ?? '',
     description: product?.description ?? '',
@@ -159,7 +159,7 @@ function ProductModal({
     }
   }
 
-  const handleChange = (field: string, value: any) => setForm((prev) => ({ ...prev, [field]: value }))
+  const handleChange = (field: string, value: string | boolean) => setForm((prev) => ({ ...prev, [field]: value }))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -190,8 +190,8 @@ function ProductModal({
 
       onSaved()
       onClose()
-    } catch (err: any) {
-      alert(err?.response?.data?.message ?? 'Erro ao salvar produto.')
+    } catch (err: unknown) {
+      alert((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erro ao salvar produto.')
     } finally {
       setIsLoading(false)
     }
@@ -248,7 +248,7 @@ function ProductModal({
               { key: 'requiresEmptyReturn', label: 'Exige vasilhame vazio' },
             ].map(({ key, label }) => (
               <label key={key} className="checkbox-label">
-                <input type="checkbox" checked={(form as any)[key]} onChange={(e) => handleChange(key, e.target.checked)} />
+                <input type="checkbox" checked={form[key as keyof typeof form] as boolean} onChange={(e) => handleChange(key, e.target.checked)} />
                 {label}
               </label>
             ))}
@@ -295,14 +295,15 @@ export function Catalog() {
     }
   }, [])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadData() }, [loadData])
 
   const handleToggleAvailability = async (productId: string) => {
     try {
       const res = await api.patch(`/products/${productId}/availability`)
       setProducts((prev) => prev.map((p) => p.id === productId ? { ...p, isAvailable: res.data.product.isAvailable } : p))
-    } catch (err: any) {
-      alert(err?.response?.data?.message ?? 'Erro ao alterar disponibilidade.')
+    } catch (err: unknown) {
+      alert((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erro ao alterar disponibilidade.')
     }
   }
 
@@ -370,8 +371,8 @@ export function Catalog() {
                   <tr key={product.id}>
                     <td>
                       <div className="product-name-cell">
-                        {(product.imageUrl || (product as any).image_url)
-                          ? <img src={product.imageUrl || (product as any).image_url} alt={product.name} className="product-thumb" />
+                        {(product.imageUrl || (product as unknown as { image_url?: string }).image_url)
+                          ? <img src={product.imageUrl || (product as unknown as { image_url?: string }).image_url as string} alt={product.name} className="product-thumb" />
                           : <div className="product-thumb-placeholder"><Package size={16} /></div>
                         }
                         <div>
@@ -427,8 +428,8 @@ export function Catalog() {
                   <tr key={cat.id}>
                     <td>
                       <div className="product-name-cell">
-                        {(cat.image_url || (cat as any).imageUrl)
-                          ? <img src={cat.image_url || (cat as any).imageUrl} alt={cat.name} className="product-thumb" />
+                        {(cat.imageUrl || (cat as unknown as { image_url?: string }).image_url)
+                          ? <img src={cat.imageUrl || (cat as unknown as { image_url?: string }).image_url as string} alt={cat.name} className="product-thumb" />
                           : <div className="product-thumb-placeholder"><Package size={16} /></div>
                         }
                         <span style={{ fontWeight: 500 }}>{cat.name}</span>
@@ -436,8 +437,8 @@ export function Catalog() {
                     </td>
                     <td style={{ color: 'var(--text-secondary)' }}>{cat.description ?? '—'}</td>
                     <td>
-                      <span className={`status-badge ${(cat.is_active ?? (cat as any).isActive) !== false ? 'status-success' : 'status-danger'}`}>
-                        {(cat.is_active ?? (cat as any).isActive) !== false ? 'Ativa' : 'Inativa'}
+                      <span className={`status-badge ${(cat.isActive ?? (cat as unknown as { is_active?: boolean }).is_active) !== false ? 'status-success' : 'status-danger'}`}>
+                        {(cat.isActive ?? (cat as unknown as { is_active?: boolean }).is_active) !== false ? 'Ativa' : 'Inativa'}
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
