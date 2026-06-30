@@ -101,8 +101,10 @@ export function Orders() {
       }
       
       socket.on('order:created', handleNewOrder)
+      socket.on('order:status_updated', handleNewOrder)
       return () => {
         socket.off('order:created', handleNewOrder)
+        socket.off('order:status_updated', handleNewOrder)
       }
     })
   }, [loadOrders])
