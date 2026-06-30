@@ -20,19 +20,45 @@ function CategoryModal({
   onClose: () => void
   onSaved: () => void
 }) {
+  const existingImage = category?.image_url || (category as any)?.imageUrl
   const [name, setName] = useState(category?.name ?? '')
   const [description, setDescription] = useState(category?.description ?? '')
+  const [isActive, setIsActive] = useState(category?.is_active ?? true)
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string | null>(existingImage ?? null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setSelectedFile(file)
+    if (file) {
+      setPreview(URL.createObjectURL(file))
+    } else {
+      setPreview(existingImage ?? null)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     try {
+      let categoryId = category?.id
+
       if (category) {
-        await api.put(`/categories/${category.id}`, { name, description })
+        await api.put(`/categories/${category.id}`, { name, description, isActive })
       } else {
-        await api.post('/categories', { name, description })
+        const res = await api.post('/categories', { name, description, isActive })
+        categoryId = res.data.category.id
       }
+
+      if (selectedFile && categoryId) {
+        const formData = new FormData()
+        formData.append('file', selectedFile)
+        await api.patch(`/categories/${categoryId}/image`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      }
+
       onSaved()
       onClose()
     } catch (err: any) {
@@ -44,21 +70,46 @@ function CategoryModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
         <div className="modal-header">
           <h3>{category ? 'Editar Categoria' : 'Nova Categoria'}</h3>
           <button className="btn-icon" onClick={onClose}>✕</button>
         </div>
         <form onSubmit={handleSubmit} className="modal-form">
-          <div className="input-group">
-            <label className="input-label">Nome</label>
-            <input className="input-field" value={name} onChange={(e) => setName(e.target.value)} required />
+          <div className="form-row" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+            <div className="input-group" style={{ flex: 1 }}>
+              <label className="input-label">Ícone da Categoria</label>
+              <div className="image-upload-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {preview ? (
+                  <img src={preview} alt="Preview" style={{ width: 80, height: 80, objectFit: 'contain', borderRadius: 12, backgroundColor: '#f3f4f6', border: '1px solid #e5e7eb' }} />
+                ) : (
+                  <div style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: '#f3f4f6', border: '1px dashed #d1d5db', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Package color="#9ca3af" size={32} />
+                  </div>
+                )}
+                <input type="file" accept="image/png, image/jpeg" onChange={handleFileChange} style={{ fontSize: '0.8rem', width: '100%' }} />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.2 }}>
+                  Sugerido: 512x512px. Máximo: 2MB (PNG/JPG).
+                </span>
+              </div>
+            </div>
+            
+            <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="input-group">
+                <label className="input-label">Nome</label>
+                <input className="input-field" value={name} onChange={(e) => setName(e.target.value)} required />
+              </div>
+              <div className="input-group">
+                <label className="input-label">Descrição (opcional)</label>
+                <input className="input-field" value={description} onChange={(e) => setDescription(e.target.value)} />
+              </div>
+              <div className="input-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                <input type="checkbox" id="isActiveCat" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+                <label htmlFor="isActiveCat" className="input-label" style={{ marginBottom: 0 }}>Ativo</label>
+              </div>
+            </div>
           </div>
-          <div className="input-group">
-            <label className="input-label">Descrição (opcional)</label>
-            <input className="input-field" value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-          <div className="modal-footer">
+          <div className="modal-footer" style={{ marginTop: '1.5rem' }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
             <button type="submit" className="btn btn-primary" disabled={isLoading}>
               {isLoading ? 'Salvando...' : 'Salvar'}
@@ -374,11 +425,19 @@ export function Catalog() {
               <tbody>
                 {filteredCategories.map((cat) => (
                   <tr key={cat.id}>
-                    <td style={{ fontWeight: 500 }}>{cat.name}</td>
+                    <td>
+                      <div className="product-name-cell">
+                        {(cat.image_url || (cat as any).imageUrl)
+                          ? <img src={cat.image_url || (cat as any).imageUrl} alt={cat.name} className="product-thumb" />
+                          : <div className="product-thumb-placeholder"><Package size={16} /></div>
+                        }
+                        <span style={{ fontWeight: 500 }}>{cat.name}</span>
+                      </div>
+                    </td>
                     <td style={{ color: 'var(--text-secondary)' }}>{cat.description ?? '—'}</td>
                     <td>
-                      <span className={`status-badge ${cat.isActive ? 'status-success' : 'status-danger'}`}>
-                        {cat.isActive ? 'Ativa' : 'Inativa'}
+                      <span className={`status-badge ${(cat.is_active ?? (cat as any).isActive) !== false ? 'status-success' : 'status-danger'}`}>
+                        {(cat.is_active ?? (cat as any).isActive) !== false ? 'Ativa' : 'Inativa'}
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
