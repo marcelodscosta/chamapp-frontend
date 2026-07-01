@@ -77,7 +77,9 @@ function KpiCard({ label, value, icon: Icon, color }: { label: string; value: st
 
 export function Dashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
-  const [period, setPeriod] = useState(7)
+  const [period, setPeriod] = useState<number | 'today' | 'custom'>('today')
+  const [customStart, setCustomStart] = useState('')
+  const [customEnd, setCustomEnd] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [storeOpen, setStoreOpen] = useState(true)
 
@@ -99,8 +101,21 @@ export function Dashboard() {
   }
 
   const loadMetrics = () => {
+    if (period === 'custom' && (!customStart || !customEnd)) {
+      return; // Aguarda o usuário preencher as duas datas
+    }
+    
+    let query = '';
+    if (period === 'today') {
+      query = '?days=0';
+    } else if (period === 'custom') {
+      query = `?startDate=${customStart}&endDate=${customEnd}`;
+    } else {
+      query = `?days=${period}`;
+    }
+
     setIsLoading(true)
-    api.get(`/dashboard/metrics?days=${period}`)
+    api.get(`/dashboard/metrics${query}`)
       .then((res) => setMetrics(res.data.metrics))
       .catch(() => {/* usar mock em caso de erro de conexão */})
       .finally(() => setIsLoading(false))
@@ -108,12 +123,19 @@ export function Dashboard() {
 
   useEffect(() => {
     loadMetrics()
-  }, [period])
+  }, [period, customStart, customEnd])
 
   useEffect(() => {
     import('../lib/socket').then(({ socket }) => {
       const handleUpdate = () => {
-        api.get(`/dashboard/metrics?days=${period}`).then((res) => setMetrics(res.data.metrics)).catch(() => {})
+        let query = '';
+        if (period === 'today') query = '?days=0';
+        else if (period === 'custom') query = `?startDate=${customStart}&endDate=${customEnd}`;
+        else query = `?days=${period}`;
+        
+        if (period === 'custom' && (!customStart || !customEnd)) return;
+        
+        api.get(`/dashboard/metrics${query}`).then((res) => setMetrics(res.data.metrics)).catch(() => {})
       }
       
       socket.on('order:created', handleUpdate)
@@ -124,7 +146,7 @@ export function Dashboard() {
         socket.off('order:status_updated', handleUpdate)
       }
     })
-  }, [period])
+  }, [period, customStart, customEnd])
 
   // ordersByStatus vem como Record<string, number> ex: { PENDING: 3, DELIVERED: 10 }
   const ordersByStatusEntries = metrics?.ordersByStatus
@@ -231,18 +253,51 @@ export function Dashboard() {
               </button>
             </div>
           </div>
-          <p>Visão geral dos últimos {period} dias.</p>
+          <p>Visão geral de <strong>{period === 'today' ? 'Hoje' : period === 'custom' ? 'Período Personalizado' : `últimos ${period} dias`}</strong>.</p>
         </div>
-        <div className="period-selector">
-          {[7, 15, 30].map((d) => (
+        
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
+          <div className="period-selector">
             <button
-              key={d}
-              className={`period-btn ${period === d ? 'active' : ''}`}
-              onClick={() => setPeriod(d)}
+              className={`period-btn ${period === 'today' ? 'active' : ''}`}
+              onClick={() => setPeriod('today')}
             >
-              {d} dias
+              Hoje
             </button>
-          ))}
+            {[7, 15, 30].map((d) => (
+              <button
+                key={d}
+                className={`period-btn ${period === d ? 'active' : ''}`}
+                onClick={() => setPeriod(d)}
+              >
+                {d} dias
+              </button>
+            ))}
+            <button
+              className={`period-btn ${period === 'custom' ? 'active' : ''}`}
+              onClick={() => setPeriod('custom')}
+            >
+              Personalizado
+            </button>
+          </div>
+          
+          {period === 'custom' && (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'white', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <input 
+                type="date" 
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                style={{ border: '1px solid #E5E7EB', borderRadius: '6px', padding: '4px 8px', outline: 'none' }}
+              />
+              <span style={{ color: '#6B7280', fontSize: '0.875rem' }}>até</span>
+              <input 
+                type="date" 
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                style={{ border: '1px solid #E5E7EB', borderRadius: '6px', padding: '4px 8px', outline: 'none' }}
+              />
+            </div>
+          )}
         </div>
       </header>
 
