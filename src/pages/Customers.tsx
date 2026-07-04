@@ -8,6 +8,15 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('pt-BR')
 }
 
+const TRANSACTION_LABELS: Record<string, string> = {
+  EARNED: 'GANHO',
+  REDEEMED: 'RESGATE',
+  ADJUSTED: 'AJUSTE',
+  EXPIRED: 'EXPIRADO',
+  REVERSED: 'ESTORNO',
+  BLOCKED: 'BLOQUEIO',
+  UNBLOCKED: 'DESBLOQUEIO',
+}
 
 function RecurrencyBadge({ days }: { days: number | null }) {
   if (days === null) return <span className="badge badge-neutral">Novo</span>
@@ -76,6 +85,129 @@ function CustomerModal({
   )
 }
 
+function CustomerLoyaltyModal({
+  customer,
+  onClose,
+  onSuccess,
+}: {
+  customer: User
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [account, setAccount] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isResetting, setIsResetting] = useState(false)
+
+  const loadStatement = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const res = await api.get(`/loyalty/admin/customers/${customer.id}/statement`)
+      setTransactions(res.data.transactions)
+      setAccount(res.data.account)
+    } catch (err: any) {
+      alert(err?.response?.data?.message ?? 'Erro ao buscar extrato.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [customer.id])
+
+  useEffect(() => {
+    loadStatement()
+  }, [loadStatement])
+
+  const handleReset = async () => {
+    if (!window.confirm(`Tem certeza que deseja ZERAR os pontos de ${customer.name}? Essa ação não pode ser desfeita.`)) {
+      return
+    }
+    setIsResetting(true)
+    try {
+      await api.post(`/loyalty/admin/customers/${customer.id}/reset`)
+      alert('Pontos zerados com sucesso!')
+      onSuccess()
+      loadStatement()
+    } catch (err: any) {
+      alert(err?.response?.data?.message ?? 'Erro ao zerar pontos.')
+    } finally {
+      setIsResetting(false)
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" style={{ maxWidth: '600px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>Extrato de Fidelidade - {customer.name}</h3>
+          <button className="btn-icon" onClick={onClose} type="button">✕</button>
+        </div>
+        
+        {isLoading ? (
+          <div style={{ padding: '2rem', textAlign: 'center' }}>Carregando extrato...</div>
+        ) : !account ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            Este cliente ainda não possui uma conta de fidelidade ativa.
+          </div>
+        ) : (
+          <div style={{ padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
+              <div>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Saldo Atual</p>
+                <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{account.balance_points} pts</p>
+              </div>
+              <button 
+                className="btn btn-danger" 
+                onClick={handleReset} 
+                disabled={isResetting || account.balance_points === 0}
+                style={{ padding: '0.5rem 1rem' }}
+              >
+                {isResetting ? 'Zerando...' : 'Zerar Pontos'}
+              </button>
+            </div>
+
+            <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+              <table className="erp-table" style={{ margin: 0 }}>
+                <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-surface)' }}>
+                  <tr>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th>Descrição</th>
+                    <th style={{ textAlign: 'right' }}>Pontos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map(t => (
+                    <tr key={t.id}>
+                      <td style={{ fontSize: '0.8125rem' }}>
+                        {new Date(t.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td>
+                        <span className={`badge ${t.points > 0 ? 'badge-success' : (t.type === 'ADJUSTED' ? 'badge-warning' : 'badge-danger')}`} style={{ fontSize: '0.7rem' }}>
+                          {TRANSACTION_LABELS[t.type] || t.type}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: '0.8125rem' }}>
+                        {t.description} {t.order?.order_number ? `(#${t.order.order_number})` : ''}
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 500, color: t.points > 0 ? 'var(--accent-success)' : 'var(--accent-danger)' }}>
+                        {t.points > 0 ? '+' : ''}{t.points}
+                      </td>
+                    </tr>
+                  ))}
+                  {transactions.length === 0 && (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-secondary)' }}>Nenhuma transação encontrada.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 interface CustomerWithStats extends User {
   totalOrders?: number
   lastOrderAt?: string
@@ -97,6 +229,7 @@ export function Customers() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [customerModal, setCustomerModal] = useState<{ open: boolean; item: User | null }>({ open: false, item: null })
+  const [loyaltyModal, setLoyaltyModal] = useState<{ open: boolean; item: User | null }>({ open: false, item: null })
 
   const loadCustomers = useCallback(async () => {
     setIsLoading(true)
@@ -282,6 +415,14 @@ export function Customers() {
                     <td style={{ textAlign: 'right' }}>
                       <button
                         className="btn-icon"
+                        onClick={() => setLoyaltyModal({ open: true, item: customer })}
+                        title="Extrato de Fidelidade"
+                        style={{ marginRight: 8 }}
+                      >
+                        <Star size={15} />
+                      </button>
+                      <button
+                        className="btn-icon"
                         onClick={() => setCustomerModal({ open: true, item: customer })}
                         title="Editar cliente"
                         style={{ marginRight: 8 }}
@@ -319,6 +460,14 @@ export function Customers() {
             setCustomerModal({ open: false, item: null })
             loadCustomers()
           }}
+        />
+      )}
+
+      {loyaltyModal.open && loyaltyModal.item && (
+        <CustomerLoyaltyModal
+          customer={loyaltyModal.item}
+          onClose={() => setLoyaltyModal({ open: false, item: null })}
+          onSuccess={() => loadCustomers()}
         />
       )}
     </div>
