@@ -17,9 +17,10 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
 }
 
 export function Settings() {
-  const [tab, setTab] = useState<'store' | 'loyalty' | 'calendar'>('store')
+  const [tab, setTab] = useState<'store' | 'loyalty' | 'calendar' | 'tiers'>('store')
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null)
   const [loyaltyConfig, setLoyaltyConfig] = useState<LoyaltyConfig | null>(null)
+  const [tiers, setTiers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null)
@@ -28,14 +29,14 @@ export function Settings() {
     const loadAll = async () => {
       setIsLoading(true)
       try {
-        const [sRes, lRes] = await Promise.all([
-          api.get('/settings'),
-          api.get('/loyalty/config'),
-        ])
-        setStoreSettings(sRes.data.settings)
-        setLoyaltyConfig(lRes.data.config)
-      } catch {
-        /* silent */
+        const sRes = await api.get('/settings').catch(() => null)
+        if (sRes) setStoreSettings(sRes.data.settings)
+
+        const lRes = await api.get('/loyalty/config').catch(() => null)
+        if (lRes) setLoyaltyConfig(lRes.data.config)
+
+        const tRes = await api.get('/loyalty/tiers').catch(() => null)
+        if (tRes) setTiers(tRes.data.tiers)
       } finally {
         setIsLoading(false)
       }
@@ -98,6 +99,24 @@ export function Settings() {
     }
   }
 
+  const saveTiers = async () => {
+    setIsSaving(true)
+    try {
+      for (const tier of tiers) {
+        await api.put(`/loyalty/tiers/${tier.id}`, {
+          name: tier.name,
+          min_spent: tier.min_spent,
+          period_days: tier.period_days,
+        })
+      }
+      setToast({ message: 'Níveis salvos com sucesso!', type: 'success' })
+    } catch (err: any) {
+      setToast({ message: err?.response?.data?.message ?? 'Erro ao salvar níveis.', type: 'error' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="settings-page">
@@ -127,6 +146,10 @@ export function Settings() {
         <button className={`tab-btn ${tab === 'loyalty' ? 'active' : ''}`} onClick={() => setTab('loyalty')}>
           <Star size={15} style={{ marginRight: '0.375rem', display: 'inline' }} />
           Programa de Fidelidade
+        </button>
+        <button className={`tab-btn ${tab === 'tiers' ? 'active' : ''}`} onClick={() => setTab('tiers')}>
+          <Star size={15} style={{ marginRight: '0.375rem', display: 'inline' }} />
+          Níveis (Tiers)
         </button>
       </div>
 
@@ -422,6 +445,116 @@ export function Settings() {
             <button className="btn btn-primary" onClick={saveLoyalty} disabled={isSaving}>
               <Save size={16} />
               {isSaving ? 'Salvando...' : 'Salvar Fidelidade'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {tab === 'tiers' && (
+        <div className="settings-card card">
+          <div className="settings-section">
+            <h3 className="settings-section-title">Níveis (Tiers) de Fidelidade</h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              Configure as metas de gastos em reais (R$) para os clientes atingirem e manterem cada nível. O sistema rebaixará automaticamente clientes que não atingirem a meta de gastos dentro do período configurado.
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {tiers.map((tier) => (
+                <div key={tier.id} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
+                      <input 
+                        className="input-field" 
+                        style={{ fontWeight: 'bold', maxWidth: '250px' }}
+                        value={tier.name}
+                        onChange={(e) => {
+                          setTiers(tiers.map(t => t.id === tier.id ? { ...t, name: e.target.value } : t))
+                        }}
+                      />
+                    </div>
+                    <button 
+                      className="btn" 
+                      style={{ color: 'var(--accent-danger)' }}
+                      onClick={async () => {
+                        if (window.confirm('Tem certeza que deseja excluir este nível?')) {
+                          try {
+                            await api.delete(`/loyalty/tiers/${tier.id}`)
+                            setTiers(tiers.filter(t => t.id !== tier.id))
+                            setToast({ message: 'Nível excluído.', type: 'success' })
+                          } catch (err) {
+                            setToast({ message: 'Erro ao excluir nível.', type: 'error' })
+                          }
+                        }
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  <div className="settings-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                    <div className="input-group">
+                      <label className="input-label">Meta de Gastos (R$)</label>
+                      <input 
+                        className="input-field" 
+                        type="number" 
+                        step="0.01" 
+                        min="0" 
+                        value={tier.min_spent} 
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0
+                          setTiers(tiers.map(t => t.id === tier.id ? { ...t, min_spent: val } : t))
+                        }} 
+                      />
+                    </div>
+                    <div className="input-group">
+                      <label className="input-label">Período de Avaliação (dias)</label>
+                      <input 
+                        className="input-field" 
+                        type="number" 
+                        min="1" 
+                        value={tier.period_days} 
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 1
+                          setTiers(tiers.map(t => t.id === tier.id ? { ...t, period_days: val } : t))
+                        }} 
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {tiers.length === 0 && (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  Nenhum nível cadastrado. Clique no botão abaixo para adicionar.
+                </div>
+              )}
+
+              <button 
+                className="btn btn-primary" 
+                style={{ width: 'fit-content' }}
+                onClick={async () => {
+                  try {
+                    const res = await api.post('/loyalty/tiers', {
+                      name: 'Novo Nível ' + Math.floor(Math.random() * 1000),
+                      min_spent: 0,
+                      period_days: 30,
+                      multiplier: 1,
+                      order: tiers.length
+                    })
+                    setTiers([...tiers, res.data.tier])
+                  } catch (err: any) {
+                    setToast({ message: err?.response?.data?.message ?? 'Erro ao criar nível.', type: 'error' })
+                  }
+                }}
+              >
+                <Plus size={16} /> Adicionar Nível
+              </button>
+            </div>
+          </div>
+
+          <div className="settings-actions">
+            <button className="btn btn-primary" onClick={saveTiers} disabled={isSaving}>
+              <Save size={16} />
+              {isSaving ? 'Salvando...' : 'Salvar Níveis'}
             </button>
           </div>
         </div>

@@ -181,15 +181,15 @@ function CustomerLoyaltyModal({
                         {new Date(t.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td>
-                        <span className={`badge ${t.points > 0 ? 'badge-success' : (t.type === 'ADJUSTED' ? 'badge-warning' : 'badge-danger')}`} style={{ fontSize: '0.7rem' }}>
+                        <span className={`badge ${t.points > 0 && !['REDEEMED', 'EXPIRED'].includes(t.type) ? 'badge-success' : (t.type === 'ADJUSTED' ? 'badge-warning' : 'badge-danger')}`} style={{ fontSize: '0.7rem' }}>
                           {TRANSACTION_LABELS[t.type] || t.type}
                         </span>
                       </td>
                       <td style={{ fontSize: '0.8125rem' }}>
                         {t.description} {t.order?.order_number ? `(#${t.order.order_number})` : ''}
                       </td>
-                      <td style={{ textAlign: 'right', fontWeight: 500, color: t.points > 0 ? 'var(--accent-success)' : 'var(--accent-danger)' }}>
-                        {t.points > 0 ? '+' : ''}{t.points}
+                      <td style={{ textAlign: 'right', fontWeight: 500, color: (t.points > 0 && !['REDEEMED', 'EXPIRED'].includes(t.type)) ? 'var(--accent-success)' : 'var(--accent-danger)' }}>
+                        {(t.points > 0 && !['REDEEMED', 'EXPIRED'].includes(t.type)) ? '+' : '-'}{Math.abs(t.points)}
                       </td>
                     </tr>
                   ))}
