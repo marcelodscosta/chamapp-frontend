@@ -153,41 +153,40 @@ export function Orders() {
         ))}
       </div>
 
-      <div className="orders-body">
-        {newOrderAlert.show && (
-          <div className="new-order-toast" style={{
-            backgroundColor: 'var(--accent-primary)',
-            color: 'white',
-            padding: '1rem',
-            borderRadius: '8px',
-            marginBottom: '1rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            animation: 'fadeIn 0.3s ease-out'
-          }}>
-            <span>🔔 <strong>Novo pedido recebido!</strong> (#{newOrderAlert.orderId?.slice(-6).toUpperCase()})</span>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <button 
-                onClick={() => {
-                  setNewOrderAlert({ show: false })
-                  // Encontra o pedido e foca nele
-                  if (newOrderAlert.orderId) {
-                    const order = orders.find(o => o.id === newOrderAlert.orderId)
-                    if (order) setSelectedOrder(order)
-                  }
-                }}
-                className="btn"
-                style={{ backgroundColor: 'white', color: 'var(--accent-primary)', fontWeight: 'bold' }}
-              >
-                Ver Pedido
-              </button>
-              <button onClick={() => setNewOrderAlert({ show: false })} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
-            </div>
+      {newOrderAlert.show && (
+        <div className="new-order-toast" style={{
+          backgroundColor: 'var(--accent-primary)',
+          color: 'white',
+          padding: '1rem',
+          borderRadius: '8px',
+          marginBottom: '1rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          animation: 'fadeIn 0.3s ease-out'
+        }}>
+          <span>🔔 <strong>Novo pedido recebido!</strong> (#{newOrderAlert.orderId?.slice(-6).toUpperCase()})</span>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <button 
+              onClick={() => {
+                setNewOrderAlert({ show: false })
+                if (newOrderAlert.orderId) {
+                  const order = orders.find(o => o.id === newOrderAlert.orderId)
+                  if (order) setSelectedOrder(order)
+                }
+              }}
+              className="btn"
+              style={{ backgroundColor: 'white', color: 'var(--accent-primary)', fontWeight: 'bold' }}
+            >
+              Ver Pedido
+            </button>
+            <button onClick={() => setNewOrderAlert({ show: false })} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
           </div>
-        )}
+        </div>
+      )}
 
+      <div className="orders-body">
         {/* Tabela de pedidos */}
         <div className="card orders-table-card">
           {isLoading ? (
