@@ -7,7 +7,7 @@ import './Orders.css'
 const STATUS_LABELS: Record<OrderStatus, string> = {
   PENDING: 'Pendente',
   CONFIRMED: 'Confirmado',
-  PREPARING: 'Preparando',
+  PREPARING: 'Em Separação',
   OUT_FOR_DELIVERY: 'Em Rota',
   DELIVERED: 'Entregue',
   CANCELLED: 'Cancelado',

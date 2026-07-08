@@ -26,7 +26,7 @@ ChartJS.register(
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'Pendentes',
   CONFIRMED: 'Confirmados',
-  PREPARING: 'Preparando',
+  PREPARING: 'Em Separação',
   OUT_FOR_DELIVERY: 'Em Rota',
   DELIVERED: 'Entregues',
   CANCELLED: 'Cancelados',
@@ -327,7 +327,7 @@ export function Dashboard() {
                 <p style={{ margin: '4px 0 0 0', color: (metrics?.ordersByStatus?.PENDING ?? 0) > 0 ? '#B45309' : '#0369A1', fontSize: '0.875rem' }}>
                   {(metrics?.ordersByStatus?.PENDING ?? 0) > 0 
                     ? 'Acesse a aba de Pedidos para confirmar os pedidos rapidamente.'
-                    : 'Você tem pedidos ativos (Confirmados, Preparando ou Em Rota).'}
+                    : 'Você tem pedidos ativos (Confirmados, Em Separação ou Em Rota).'}
                 </p>
               </div>
               <button 
