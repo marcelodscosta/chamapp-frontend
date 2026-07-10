@@ -216,7 +216,7 @@
 
 .notification-image img {
   width: 100%;
-  max-height: 160px;
+  height: 160px;
   object-fit: cover;
   display: block;
 }
