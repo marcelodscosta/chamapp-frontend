@@ -11,6 +11,7 @@ import { Customers } from './pages/Customers'
 import { Marketing } from './pages/Marketing'
 import { Settings } from './pages/Settings'
 import { Partners } from './pages/Partners'
+import { Team } from './pages/Team'
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
             <Route path="map" element={<MapView />} />
             <Route path="settings" element={<Settings />} />
             <Route path="partners" element={<Partners />} />
+            <Route path="team" element={<Team />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

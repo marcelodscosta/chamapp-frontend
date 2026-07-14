@@ -11,6 +11,7 @@ import {
   LogOut,
   Store,
   Handshake,
+  Shield,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../services/api'
@@ -148,6 +149,10 @@ export function DashboardLayout() {
           <NavLink to="/partners" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <Handshake size={18} />
             <span>Parcerias</span>
+          </NavLink>
+          <NavLink to="/team" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+            <Shield size={18} />
+            <span>Equipe</span>
           </NavLink>
           <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <Settings size={18} />

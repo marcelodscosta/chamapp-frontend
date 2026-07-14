@@ -1,0 +1,89 @@
+.team-page {
+  padding: 2rem;
+}
+
+.team-page .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.team-page .page-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.team-page .page-header p {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.team-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.team-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: var(--accent-primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+.role-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.role-admin {
+  background-color: #EF444420;
+  color: #EF4444;
+}
+
+.role-operator {
+  background-color: #3B82F620;
+  color: #3B82F6;
+}
+
+.role-delivery {
+  background-color: #10B98120;
+  color: #10B981;
+}
+
+.toggle-btn {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+}
+
+.toggle-deactivate {
+  color: var(--accent-danger);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--accent-danger);
+}
+.toggle-deactivate:hover {
+  background-color: var(--accent-danger);
+  color: white;
+}
+
+.toggle-activate {
+  color: var(--accent-success);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--accent-success);
+}
+.toggle-activate:hover {
+  background-color: var(--accent-success);
+  color: white;
+}
