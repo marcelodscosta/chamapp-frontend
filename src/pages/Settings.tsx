@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Save, Store, Star, AlertCircle, CheckCircle, CalendarDays, Plus, Trash2, HelpCircle } from 'lucide-react'
+import { Save, Store, Star, AlertCircle, CheckCircle, CalendarDays, Plus, Trash2, HelpCircle, ShieldAlert } from 'lucide-react'
 import { api } from '../services/api'
 import type { StoreSettings, LoyaltyConfig } from '../types'
 import './Settings.css'
@@ -16,27 +16,118 @@ function Toast({ message, type, onClose }: { message: string; type: ToastType; o
   )
 }
 
+function DangerZoneModal({
+  onClose,
+  onConfirm,
+  tableName
+}: {
+  onClose: () => void
+  onConfirm: () => void
+  tableName: string
+}) {
+  const [inputText, setInputText] = useState('')
+  const isValid = inputText === 'CONFIRMAR'
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{ borderTop: '4px solid var(--accent-danger)' }}>
+        <div className="modal-header">
+          <h3 style={{ color: 'var(--accent-danger)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ShieldAlert size={20} />
+            Zona de Perigo
+          </h3>
+          <button className="btn-icon" onClick={onClose} type="button">✕</button>
+        </div>
+        <div style={{ padding: '0 1.5rem', marginBottom: '1.5rem' }}>
+          <p style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>
+            Você está prestes a apagar <strong>todos os dados</strong> referentes a <strong>{tableName}</strong>.
+          </p>
+          <p style={{ marginBottom: '1rem', color: 'var(--accent-danger)', fontWeight: 500 }}>
+            Esta ação é irreversível. Não há como recuperar esses dados.
+          </p>
+          <label className="input-label" style={{ display: 'block', marginBottom: '0.5rem' }}>
+            Para confirmar, digite <strong>CONFIRMAR</strong> no campo abaixo:
+          </label>
+          <input 
+            className="input-field" 
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder="CONFIRMAR"
+            style={{ width: '100%', borderColor: isValid ? 'var(--accent-success)' : 'var(--border-color)' }}
+          />
+        </div>
+        <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
+          <button 
+            type="button" 
+            className="btn" 
+            style={{ backgroundColor: 'var(--accent-danger)', color: 'white' }}
+            disabled={!isValid}
+            onClick={() => {
+              if (isValid) onConfirm()
+            }}
+          >
+            Sim, Apagar Dados
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function Settings() {
-  const [tab, setTab] = useState<'store' | 'loyalty' | 'calendar' | 'tiers'>('store')
+  const [tab, setTab] = useState<'store' | 'loyalty' | 'calendar' | 'tiers' | 'system'>('store')
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null)
   const [loyaltyConfig, setLoyaltyConfig] = useState<LoyaltyConfig | null>(null)
   const [tiers, setTiers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null)
+  
+  const [dangerModalOpen, setDangerModalOpen] = useState(false)
+  const [tableToClear, setTableToClear] = useState('orders')
 
   useEffect(() => {
     const loadAll = async () => {
       setIsLoading(true)
       try {
         const sRes = await api.get('/settings').catch(() => null)
-        if (sRes) setStoreSettings(sRes.data.settings)
+        if (sRes?.data?.settings) {
+          setStoreSettings(sRes.data.settings)
+        } else {
+          setStoreSettings({
+            name: '',
+            phone: '',
+            address: '',
+            delivery_fee: 0,
+            free_delivery_above: null,
+            min_order_value: 0,
+            store_open: true,
+            operating_days: [],
+            holidays: []
+          } as any)
+        }
 
         const lRes = await api.get('/loyalty/config').catch(() => null)
-        if (lRes) setLoyaltyConfig(lRes.data.config)
+        if (lRes?.data?.config) {
+          setLoyaltyConfig(lRes.data.config)
+        } else {
+          setLoyaltyConfig({
+            program_enabled: false,
+            program_mode: 'POINTS',
+            points_per_real: 10,
+            conversion_rate: 0.1,
+            min_points_to_redeem: 500,
+            max_redeem_percent: 50,
+            expiry_days: 365,
+            inactivity_days: 90
+          } as any)
+        }
 
         const tRes = await api.get('/loyalty/tiers').catch(() => null)
-        if (tRes) setTiers(tRes.data.tiers)
+        if (tRes?.data?.tiers) {
+          setTiers(tRes.data.tiers)
+        }
       } finally {
         setIsLoading(false)
       }
@@ -45,11 +136,11 @@ export function Settings() {
   }, [])
 
   const handleStoreChange = (field: keyof StoreSettings, value: any) => {
-    setStoreSettings((prev) => prev ? { ...prev, [field]: value } : prev)
+    setStoreSettings((prev) => prev ? { ...prev, [field]: value } : { [field]: value } as any)
   }
 
   const handleLoyaltyChange = (field: keyof LoyaltyConfig, value: any) => {
-    setLoyaltyConfig((prev) => prev ? { ...prev, [field]: value } : prev)
+    setLoyaltyConfig((prev) => prev ? { ...prev, [field]: value } : { [field]: value } as any)
   }
 
   const saveStore = async () => {
@@ -82,14 +173,14 @@ export function Settings() {
     setIsSaving(true)
     try {
       await api.put('/loyalty/config', {
-        program_enabled: loyaltyConfig.program_enabled,
-        program_mode: loyaltyConfig.program_mode,
-        points_per_real: loyaltyConfig.points_per_real,
-        conversion_rate: loyaltyConfig.conversion_rate,
-        min_points_to_redeem: loyaltyConfig.min_points_to_redeem,
-        max_redeem_percent: loyaltyConfig.max_redeem_percent,
-        expiry_days: loyaltyConfig.expiry_days,
-        inactivity_days: loyaltyConfig.inactivity_days,
+        program_enabled: loyaltyConfig?.program_enabled ?? false,
+        program_mode: loyaltyConfig?.program_mode ?? 'POINTS',
+        points_per_real: loyaltyConfig?.points_per_real ?? 10,
+        conversion_rate: loyaltyConfig?.conversion_rate ?? 0.1,
+        min_points_to_redeem: loyaltyConfig?.min_points_to_redeem ?? 500,
+        max_redeem_percent: loyaltyConfig?.max_redeem_percent ?? 50,
+        expiry_days: loyaltyConfig?.expiry_days,
+        inactivity_days: loyaltyConfig?.inactivity_days,
       })
       setToast({ message: 'Programa de fidelidade salvo!', type: 'success' })
     } catch (err: any) {
@@ -151,24 +242,28 @@ export function Settings() {
           <Star size={15} style={{ marginRight: '0.375rem', display: 'inline' }} />
           Níveis (Tiers)
         </button>
+        <button className={`tab-btn ${tab === 'system' ? 'active' : ''}`} onClick={() => setTab('system')} style={{ color: tab === 'system' ? 'var(--accent-danger)' : '' }}>
+          <ShieldAlert size={15} style={{ marginRight: '0.375rem', display: 'inline' }} />
+          Sistema
+        </button>
       </div>
 
-      {tab === 'store' && storeSettings && (
+      {tab === 'store' && (
         <div className="settings-card card">
           <div className="settings-section">
             <h3 className="settings-section-title">Informações Gerais</h3>
             <div className="settings-grid">
               <div className="input-group">
                 <label className="input-label">Nome da Loja</label>
-                <input className="input-field" value={storeSettings.name ?? ''} onChange={(e) => handleStoreChange('name', e.target.value)} />
+                <input className="input-field" value={storeSettings?.name ?? ''} onChange={(e) => handleStoreChange('name', e.target.value)} />
               </div>
               <div className="input-group">
                 <label className="input-label">Telefone</label>
-                <input className="input-field" value={storeSettings.phone ?? ''} onChange={(e) => handleStoreChange('phone', e.target.value)} />
+                <input className="input-field" value={storeSettings?.phone ?? ''} onChange={(e) => handleStoreChange('phone', e.target.value)} />
               </div>
               <div className="input-group col-span-2">
                 <label className="input-label">Endereço</label>
-                <input className="input-field" value={storeSettings.address ?? ''} onChange={(e) => handleStoreChange('address', e.target.value)} />
+                <input className="input-field" value={storeSettings?.address ?? ''} onChange={(e) => handleStoreChange('address', e.target.value)} />
               </div>
             </div>
           </div>
@@ -178,15 +273,15 @@ export function Settings() {
             <div className="settings-grid">
               <div className="input-group">
                 <label className="input-label">Taxa de Entrega (R$)</label>
-                <input className="input-field" type="number" step="0.01" min="0" value={storeSettings.delivery_fee ?? 0} onChange={(e) => handleStoreChange('delivery_fee', parseFloat(e.target.value))} />
+                <input className="input-field" type="number" step="0.01" min="0" value={storeSettings?.delivery_fee ?? 0} onChange={(e) => handleStoreChange('delivery_fee', parseFloat(e.target.value))} />
               </div>
               <div className="input-group">
                 <label className="input-label">Entrega Grátis acima de (R$)</label>
-                <input className="input-field" type="number" step="0.01" min="0" placeholder="Sem frete grátis" value={storeSettings.free_delivery_above ?? ''} onChange={(e) => handleStoreChange('free_delivery_above', e.target.value ? parseFloat(e.target.value) : null)} />
+                <input className="input-field" type="number" step="0.01" min="0" placeholder="Sem frete grátis" value={storeSettings?.free_delivery_above ?? ''} onChange={(e) => handleStoreChange('free_delivery_above', e.target.value ? parseFloat(e.target.value) : null)} />
               </div>
               <div className="input-group">
                 <label className="input-label">Pedido Mínimo (R$)</label>
-                <input className="input-field" type="number" step="0.01" min="0" value={storeSettings.min_order_value ?? 0} onChange={(e) => handleStoreChange('min_order_value', parseFloat(e.target.value))} />
+                <input className="input-field" type="number" step="0.01" min="0" value={storeSettings?.min_order_value ?? 0} onChange={(e) => handleStoreChange('min_order_value', parseFloat(e.target.value))} />
               </div>
             </div>
           </div>
@@ -200,12 +295,12 @@ export function Settings() {
               <div className="input-group">
                 <label className="settings-toggle-label">
                   <span>Loja Aberta Agora</span>
-                  <div className="toggle-switch" onClick={() => handleStoreChange('store_open', !storeSettings.store_open)}>
-                    <div className={`toggle-track ${storeSettings.store_open ? 'on' : ''}`}>
+                  <div className="toggle-switch" onClick={() => handleStoreChange('store_open', !(storeSettings?.store_open ?? true))}>
+                    <div className={`toggle-track ${storeSettings?.store_open ?? true ? 'on' : ''}`}>
                       <div className="toggle-thumb" />
                     </div>
-                    <span className={storeSettings.store_open ? 'text-success' : 'text-muted'}>
-                      {storeSettings.store_open ? 'Aberta' : 'Fechada'}
+                    <span className={storeSettings?.store_open ?? true ? 'text-success' : 'text-muted'}>
+                      {storeSettings?.store_open ?? true ? 'Aberta' : 'Fechada'}
                     </span>
                   </div>
                 </label>
@@ -222,7 +317,7 @@ export function Settings() {
         </div>
       )}
 
-      {tab === 'calendar' && storeSettings && (
+      {tab === 'calendar' && (
         <div className="settings-card card">
           <div className="settings-section">
             <h3 className="settings-section-title">Dias de Funcionamento</h3>
@@ -232,7 +327,7 @@ export function Settings() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {[0, 1, 2, 3, 4, 5, 6].map(dayIdx => {
                 const dayNames = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
-                const currentDays = storeSettings.operating_days || []
+                const currentDays = storeSettings?.operating_days || []
                 const dayConfig = currentDays.find(d => d.day === dayIdx) || { day: dayIdx, open: false, start: '08:00', end: '18:00' }
                 
                 return (
@@ -302,7 +397,7 @@ export function Settings() {
                 onClick={() => {
                   const el = document.getElementById('newHolidayDate') as HTMLInputElement
                   if (el.value) {
-                    const currentHolidays = storeSettings.holidays || []
+                    const currentHolidays = storeSettings?.holidays || []
                     if (!currentHolidays.includes(el.value)) {
                       handleStoreChange('holidays', [...currentHolidays, el.value])
                     }
@@ -315,21 +410,21 @@ export function Settings() {
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {(storeSettings.holidays || []).map(dateStr => (
+              {(storeSettings?.holidays || []).map(dateStr => (
                 <div key={dateStr} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 1rem', background: '#f8fafc', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
                   <span>{new Date(dateStr + 'T12:00:00Z').toLocaleDateString('pt-BR')}</span>
                   <button 
                     className="btn" 
                     style={{ color: 'var(--accent-danger)' }}
                     onClick={() => {
-                      handleStoreChange('holidays', (storeSettings.holidays || []).filter(d => d !== dateStr))
+                      handleStoreChange('holidays', (storeSettings?.holidays || []).filter(d => d !== dateStr))
                     }}
                   >
                     <Trash2 size={16} />
                   </button>
                 </div>
               ))}
-              {(!storeSettings.holidays || storeSettings.holidays.length === 0) && (
+              {(!storeSettings?.holidays || storeSettings.holidays.length === 0) && (
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontStyle: 'italic' }}>
                   Nenhuma data de exceção cadastrada.
                 </div>
@@ -346,7 +441,7 @@ export function Settings() {
         </div>
       )}
 
-      {tab === 'loyalty' && loyaltyConfig && (
+      {tab === 'loyalty' && (
         <div className="settings-card card">
           <div className="settings-section">
             <h3 className="settings-section-title">Configurações do Programa</h3>
@@ -359,7 +454,7 @@ export function Settings() {
                     <span className="tooltip-text">Define se o programa de fidelidade opera acumulando Pontos virtuais ou retornando Cashback em dinheiro (R$).</span>
                   </div>
                 </div>
-                <select className="input-field" value={loyaltyConfig.program_mode} onChange={(e) => handleLoyaltyChange('program_mode', e.target.value)}>
+                <select className="input-field" value={loyaltyConfig?.program_mode ?? 'POINTS'} onChange={(e) => handleLoyaltyChange('program_mode', e.target.value)}>
                   <option value="POINTS">Pontos</option>
                   <option value="CASHBACK">Cashback</option>
                 </select>
@@ -372,7 +467,7 @@ export function Settings() {
                     <span className="tooltip-text">Quantidade de pontos que o cliente ganha a cada R$ 1,00 gasto em compras na loja. Exemplo: se configurado como 10, uma compra de R$ 50,00 gera 500 pontos.</span>
                   </div>
                 </div>
-                <input className="input-field" type="number" step="0.1" min="0" value={loyaltyConfig.points_per_real} onChange={(e) => handleLoyaltyChange('points_per_real', parseFloat(e.target.value))} />
+                <input className="input-field" type="number" step="0.1" min="0" value={loyaltyConfig?.points_per_real ?? 0} onChange={(e) => handleLoyaltyChange('points_per_real', parseFloat(e.target.value))} />
               </div>
               <div className="input-group">
                 <div className="label-with-tooltip">
@@ -382,7 +477,7 @@ export function Settings() {
                     <span className="tooltip-text">Quantidade de pontos necessários para obter R$ 1,00 de desconto. Exemplo: se configurado como 10, cada 10 pontos equivalem a R$ 1,00 de desconto (ex: 500 pts = R$ 50,00 de desconto).</span>
                   </div>
                 </div>
-                <input className="input-field" type="number" step="0.01" min="0" value={loyaltyConfig.conversion_rate} onChange={(e) => handleLoyaltyChange('conversion_rate', parseFloat(e.target.value))} />
+                <input className="input-field" type="number" step="0.01" min="0" value={loyaltyConfig?.conversion_rate ?? 0} onChange={(e) => handleLoyaltyChange('conversion_rate', parseFloat(e.target.value))} />
               </div>
               <div className="input-group">
                 <div className="label-with-tooltip">
@@ -392,7 +487,7 @@ export function Settings() {
                     <span className="tooltip-text">Quantidade mínima de pontos que o cliente deve acumular antes de conseguir realizar um resgate no carrinho do app.</span>
                   </div>
                 </div>
-                <input className="input-field" type="number" min="0" value={loyaltyConfig.min_points_to_redeem} onChange={(e) => handleLoyaltyChange('min_points_to_redeem', parseInt(e.target.value))} />
+                <input className="input-field" type="number" min="0" value={loyaltyConfig?.min_points_to_redeem ?? 0} onChange={(e) => handleLoyaltyChange('min_points_to_redeem', parseInt(e.target.value))} />
               </div>
               <div className="input-group">
                 <div className="label-with-tooltip">
@@ -402,7 +497,7 @@ export function Settings() {
                     <span className="tooltip-text">Limite máximo de desconto que pode ser pago usando os pontos acumulados, calculado sobre o valor total do pedido. Evita que o pedido saia totalmente de graça.</span>
                   </div>
                 </div>
-                <input className="input-field" type="number" step="1" min="0" max="100" value={loyaltyConfig.max_redeem_percent} onChange={(e) => handleLoyaltyChange('max_redeem_percent', parseFloat(e.target.value))} />
+                <input className="input-field" type="number" step="1" min="0" max="100" value={loyaltyConfig?.max_redeem_percent ?? 0} onChange={(e) => handleLoyaltyChange('max_redeem_percent', parseFloat(e.target.value))} />
               </div>
               <div className="input-group">
                 <div className="label-with-tooltip">
@@ -412,7 +507,7 @@ export function Settings() {
                     <span className="tooltip-text">Prazo de validade de cada ponto acumulado, contado a partir do dia em que foi ganho. Deixe em branco se os pontos não expirarem.</span>
                   </div>
                 </div>
-                <input className="input-field" type="number" min="1" value={loyaltyConfig.expiry_days ?? ''} placeholder="Sem expiração" onChange={(e) => handleLoyaltyChange('expiry_days', e.target.value ? parseInt(e.target.value) : undefined)} />
+                <input className="input-field" type="number" min="1" value={loyaltyConfig?.expiry_days ?? ''} placeholder="Sem expiração" onChange={(e) => handleLoyaltyChange('expiry_days', e.target.value ? parseInt(e.target.value) : undefined)} />
               </div>
               <div className="input-group">
                 <div className="label-with-tooltip">
@@ -422,7 +517,7 @@ export function Settings() {
                     <span className="tooltip-text">Se o cliente passar este número de dias sem realizar nenhuma compra ou ação na loja, todo o saldo acumulado de pontos dele será zerado de uma vez.</span>
                   </div>
                 </div>
-                <input className="input-field" type="number" min="1" value={loyaltyConfig.inactivity_days ?? ''} placeholder="Não expira por inatividade" onChange={(e) => handleLoyaltyChange('inactivity_days', e.target.value ? parseInt(e.target.value) : undefined)} />
+                <input className="input-field" type="number" min="1" value={loyaltyConfig?.inactivity_days ?? ''} placeholder="Não expira por inatividade" onChange={(e) => handleLoyaltyChange('inactivity_days', e.target.value ? parseInt(e.target.value) : undefined)} />
               </div>
             </div>
           </div>
@@ -430,12 +525,12 @@ export function Settings() {
           <div className="settings-section">
             <label className="settings-toggle-label">
               <span>Programa Ativo</span>
-              <div className="toggle-switch" onClick={() => handleLoyaltyChange('program_enabled', !loyaltyConfig.program_enabled)}>
-                <div className={`toggle-track ${loyaltyConfig.program_enabled ? 'on' : ''}`}>
+              <div className="toggle-switch" onClick={() => handleLoyaltyChange('program_enabled', !loyaltyConfig?.program_enabled)}>
+                <div className={`toggle-track ${loyaltyConfig?.program_enabled ? 'on' : ''}`}>
                   <div className="toggle-thumb" />
                 </div>
-                <span className={loyaltyConfig.program_enabled ? 'text-success' : 'text-muted'}>
-                  {loyaltyConfig.program_enabled ? 'Ativado' : 'Desativado'}
+                <span className={loyaltyConfig?.program_enabled ? 'text-success' : 'text-muted'}>
+                  {loyaltyConfig?.program_enabled ? 'Ativado' : 'Desativado'}
                 </span>
               </div>
             </label>
@@ -559,6 +654,76 @@ export function Settings() {
           </div>
         </div>
       )}
+
+      {tab === 'system' && (
+        <div className="settings-card card" style={{ borderColor: 'var(--accent-danger)' }}>
+          <div className="settings-section">
+            <h3 className="settings-section-title" style={{ color: 'var(--accent-danger)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldAlert size={20} />
+              Zona de Perigo
+            </h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              Ações realizadas aqui são permanentes e não podem ser desfeitas. Use com extrema cautela, preferencialmente apenas em ambientes de teste.
+            </p>
+            
+            <div style={{ padding: '1.5rem', border: '1px solid var(--accent-danger)', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.05)' }}>
+              <h4 style={{ color: 'var(--text-primary)', marginBottom: '1rem' }}>Limpar Dados do Sistema</h4>
+              
+              <div className="input-group" style={{ maxWidth: '400px' }}>
+                <label className="input-label">Selecione o grupo de dados a ser excluído</label>
+                <select 
+                  className="input-field" 
+                  value={tableToClear} 
+                  onChange={(e) => setTableToClear(e.target.value)}
+                  style={{ marginBottom: '1rem' }}
+                >
+                  <option value="orders">Pedidos e Transações de Fidelidade</option>
+                  <option value="customers">Clientes (e seus Pedidos, Endereços, etc)</option>
+                  <option value="catalog">Catálogo (Produtos e Categorias)</option>
+                  <option value="partners">Parceiros e Banners</option>
+                  <option value="notifications">Logs de Notificações</option>
+                  <option value="all">Zerar Tudo (Menos Equipe e Configurações)</option>
+                </select>
+                
+                <button 
+                  className="btn" 
+                  style={{ backgroundColor: 'var(--accent-danger)', color: 'white', width: '100%', justifyContent: 'center' }}
+                  onClick={() => setDangerModalOpen(true)}
+                >
+                  Zerar Dados
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {dangerModalOpen && (
+        <DangerZoneModal
+          tableName={
+            tableToClear === 'orders' ? 'Pedidos' :
+            tableToClear === 'customers' ? 'Clientes' :
+            tableToClear === 'catalog' ? 'Catálogo' :
+            tableToClear === 'partners' ? 'Parcerias' :
+            tableToClear === 'notifications' ? 'Notificações' :
+            'TUDO (Banco de Dados)'
+          }
+          onClose={() => setDangerModalOpen(false)}
+          onConfirm={async () => {
+            setDangerModalOpen(false)
+            setIsLoading(true)
+            try {
+              await api.delete(`/system/clear-table/${tableToClear}`)
+              setToast({ message: 'Dados excluídos com sucesso.', type: 'success' })
+            } catch (err: any) {
+              setToast({ message: err?.response?.data?.message ?? 'Erro ao excluir dados.', type: 'error' })
+            } finally {
+              setIsLoading(false)
+            }
+          }}
+        />
+      )}
+
 
       {toast && (
         <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
